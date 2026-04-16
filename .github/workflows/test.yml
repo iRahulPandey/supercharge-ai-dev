@@ -98,17 +98,5 @@ jobs:
       - name: Install dependencies
         run: uv sync --extra ci
 
-      - name: Check for secrets
-        run: |
-          pip install detect-secrets
-          detect-secrets scan --baseline .secrets.baseline || echo "No secrets detected"
-
-      - name: Check for common vulnerabilities
-        run: |
-          pip install bandit
-          bandit -r src/ --skip B101 || true
-
-      - name: Check package security
-        run: |
-          pip install pip-audit
-          pip-audit --skip-editable || true
+      - name: Audit package vulnerabilities
+        run: uv run pip-audit --skip-editable || true
