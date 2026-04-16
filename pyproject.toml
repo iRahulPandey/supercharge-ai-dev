@@ -8,6 +8,7 @@ dependencies = [
     "databricks-sdk==0.85.0",
     "loguru==0.7.3",
     "python-dotenv==1.1.1",
+    "pyyaml>=6.0, <7",
 ]
 
 [project.optional-dependencies]
@@ -16,12 +17,16 @@ dev = [
     "ipykernel>=6.29.5, <7",
     "pip>=25.0.1, <26",
     "pre-commit>=4.1.0, <5",
+    "pytest>=8.3.4, <9",
+    "pytest-asyncio>=0.23, <1",
+    "pytest-cov>=6.0.0, <7",
     "ruff>=0.15.1, <1",
 ]
 
 ci = [
     "pre-commit>=4.1.0, <5",
     "pytest>=8.3.4, <9",
+    "pytest-asyncio>=0.23, <1",
     "pytest-cov>=6.0.0, <7",
 ]
 
