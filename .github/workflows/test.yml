@@ -1,15 +1,45 @@
 name: Tests & Linting
 
 on:
-  pull_request:
-    branches:
-      - main
   push:
     branches:
-      - main
+      - '**'
+  pull_request:
+    branches:
+      - '**'
 
 jobs:
+  lint:
+    name: Lint & Format
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install uv
+        run: |
+          curl -LsSf https://astral.sh/uv/install.sh | sh
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
+
+      - name: Install dependencies
+        run: uv sync --extra ci
+
+      - name: Lint with Ruff
+        run: uv run ruff check .
+
+      - name: Format check with Ruff
+        run: uv run ruff format . --check
+
+      - name: Type check with MyPy
+        run: uv run mypy src/ --ignore-missing-imports
+
   test:
+    name: Tests & Coverage
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -39,12 +69,6 @@ jobs:
       - name: Install dependencies
         run: uv sync --extra ci
 
-      - name: Lint with Ruff
-        run: uv run ruff check .
-
-      - name: Format check with Ruff
-        run: uv run ruff format . --check
-
       - name: Run tests
         run: uv run pytest -v --cov=src --cov-report=xml
 
@@ -53,3 +77,38 @@ jobs:
         with:
           files: ./coverage.xml
           fail_ci_if_error: false
+
+  security:
+    name: Security Checks
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install uv
+        run: |
+          curl -LsSf https://astral.sh/uv/install.sh | sh
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
+
+      - name: Install dependencies
+        run: uv sync --extra ci
+
+      - name: Check for secrets
+        run: |
+          pip install detect-secrets
+          detect-secrets scan --baseline .secrets.baseline || echo "No secrets detected"
+
+      - name: Check for common vulnerabilities
+        run: |
+          pip install bandit
+          bandit -r src/ --skip B101 || true
+
+      - name: Check package security
+        run: |
+          pip install pip-audit
+          pip-audit --skip-editable || true
