@@ -1,0 +1,123 @@
+name: Deploy via DAB
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy-dev:
+    runs-on: ubuntu-latest
+    environment:
+      name: dev
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install uv
+        run: |
+          curl -LsSf https://astral.sh/uv/install.sh | sh
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
+
+      - name: Install Databricks CLI
+        run: pip install databricks-cli
+
+      - name: Build wheel
+        run: uv build
+
+      - name: Authenticate with Databricks
+        env:
+          DATABRICKS_HOST: ${{ secrets.DATABRICKS_DEV_HOST }}
+          DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_DEV_TOKEN }}
+        run: |
+          mkdir -p ~/.databricks
+          cat > ~/.databricks/DEFAULT << EOF
+          host = ${{ secrets.DATABRICKS_DEV_HOST }}
+          token = ${{ secrets.DATABRICKS_DEV_TOKEN }}
+          EOF
+
+      - name: Deploy to dev
+        run: databricks bundle deploy --target dev
+
+      - name: Run validation job
+        run: databricks bundle run hello_world_job --target dev
+
+  deploy-acc:
+    needs: deploy-dev
+    runs-on: ubuntu-latest
+    environment:
+      name: acc
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install uv
+        run: |
+          curl -LsSf https://astral.sh/uv/install.sh | sh
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
+
+      - name: Install Databricks CLI
+        run: pip install databricks-cli
+
+      - name: Build wheel
+        run: uv build
+
+      - name: Authenticate with Databricks
+        env:
+          DATABRICKS_HOST: ${{ secrets.DATABRICKS_ACC_HOST }}
+          DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_ACC_TOKEN }}
+        run: |
+          mkdir -p ~/.databricks
+          cat > ~/.databricks/DEFAULT << EOF
+          host = ${{ secrets.DATABRICKS_ACC_HOST }}
+          token = ${{ secrets.DATABRICKS_ACC_TOKEN }}
+          EOF
+
+      - name: Deploy to acc
+        run: databricks bundle deploy --target acc
+
+  deploy-prd:
+    needs: deploy-acc
+    runs-on: ubuntu-latest
+    environment:
+      name: prd
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install uv
+        run: |
+          curl -LsSf https://astral.sh/uv/install.sh | sh
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
+
+      - name: Install Databricks CLI
+        run: pip install databricks-cli
+
+      - name: Build wheel
+        run: uv build
+
+      - name: Authenticate with Databricks
+        env:
+          DATABRICKS_HOST: ${{ secrets.DATABRICKS_PRD_HOST }}
+          DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_PRD_TOKEN }}
+        run: |
+          mkdir -p ~/.databricks
+          cat > ~/.databricks/DEFAULT << EOF
+          host = ${{ secrets.DATABRICKS_PRD_HOST }}
+          token = ${{ secrets.DATABRICKS_PRD_TOKEN }}
+          EOF
+
+      - name: Deploy to prd
+        run: databricks bundle deploy --target prd
