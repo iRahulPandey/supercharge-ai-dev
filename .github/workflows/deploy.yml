@@ -3,7 +3,7 @@ name: Deploy via DAB
 on:
   push:
     branches:
-      - main
+      - master
 
 jobs:
   deploy-dev:
