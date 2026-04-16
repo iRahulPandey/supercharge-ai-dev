@@ -27,18 +27,26 @@ def setup_logger(
     loguru_logger.remove()
 
     # Add console handler
+    console_fmt = (
+        "<level>{level: <8}</level> | <cyan>{name}</cyan>:"
+        "<cyan>{function}</cyan>:<cyan>{line}</cyan> - <level>{message}</level>"
+    )
     loguru_logger.add(
         sys.stderr,
         level=level,
-        format="<level>{level: <8}</level> | <cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> - <level>{message}</level>",
+        format=console_fmt,
     )
 
     # Add file handler if specified
     if log_file:
+        file_fmt = (
+            "{time:YYYY-MM-DD HH:mm:ss} | {level: <8} | "
+            "{name}:{function}:{line} - {message}"
+        )
         loguru_logger.add(
             log_file,
             level=level,
-            format="{time:YYYY-MM-DD HH:mm:ss} | {level: <8} | {name}:{function}:{line} - {message}",
+            format=file_fmt,
             rotation="10 MB",
             retention="7 days",
         )

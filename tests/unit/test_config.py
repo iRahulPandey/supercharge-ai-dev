@@ -8,7 +8,7 @@ from pathlib import Path
 import pytest
 from pydantic import ValidationError
 
-from supercharge_ai.config import ProjectConfig, load_config
+from supercharge_ai.config import ProjectConfig
 
 
 def test_project_config_from_dict():
@@ -25,7 +25,7 @@ def test_project_config_from_dict():
     config = ProjectConfig(**config_data)
 
     assert config.catalog == "dev"
-    assert config.schema == "supercharge_ai"
+    assert config.schema_name == "supercharge_ai"
     assert config.full_schema_name == "dev.supercharge_ai"
     assert config.full_volume_path == "/Volumes/dev/supercharge_ai/data"
 
@@ -69,7 +69,7 @@ acc:
 
         config = ProjectConfig.from_yaml(str(config_path), env="dev")
         assert config.catalog == "dev"
-        assert config.schema == "supercharge_ai"
+        assert config.schema_name == "supercharge_ai"
 
 
 def test_load_config_invalid_environment():

@@ -6,14 +6,14 @@ from pathlib import Path
 from typing import Any
 
 import yaml
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class ProjectConfig(BaseModel):
     """Project configuration model."""
 
     catalog: str = Field(..., description="Unity Catalog name")
-    schema: str = Field(..., description="Schema name")
+    schema_name: str = Field(..., alias="schema", description="Schema name")
     volume: str = Field(..., description="Volume name")
     llm_endpoint: str = Field(default="", description="LLM endpoint name")
     embedding_endpoint: str = Field(default="", description="Embedding endpoint name")
@@ -21,11 +21,9 @@ class ProjectConfig(BaseModel):
     vector_search_endpoint: str = Field(
         default="", description="Vector search endpoint name"
     )
-    genie_space_id: str | None = Field(
-        default=None, description="Genie Space ID"
-    )
+    genie_space_id: str | None = Field(default=None, description="Genie Space ID")
 
-    model_config = {"populate_by_name": True}
+    model_config = ConfigDict(populate_by_name=True)  # type: ignore[assignment]
 
     @classmethod
     def from_yaml(cls, config_path: str, env: str = "dev") -> ProjectConfig:
@@ -57,12 +55,12 @@ class ProjectConfig(BaseModel):
     @property
     def full_schema_name(self) -> str:
         """Get fully qualified schema name."""
-        return f"{self.catalog}.{self.schema}"
+        return f"{self.catalog}.{self.schema_name}"
 
     @property
     def full_volume_path(self) -> str:
         """Get fully qualified volume path as filesystem path."""
-        return f"/Volumes/{self.catalog}/{self.schema}/{self.volume}"
+        return f"/Volumes/{self.catalog}/{self.schema_name}/{self.volume}"
 
 
 def load_config(
