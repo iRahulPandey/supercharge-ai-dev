@@ -1,1 +1,17 @@
 .remember
+
+# DAB
+.bundle/
+
+# Development environment artifacts
+.agents/
+.ai-dev-kit/
+.claude/
+.cursor/
+.github/skills/
+.mcp.json
+
+# Test artifacts
+.pytest_cache/
+.coverage
+htmlcov/
