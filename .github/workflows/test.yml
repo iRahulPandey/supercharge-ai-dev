@@ -100,3 +100,19 @@ jobs:
 
       - name: Audit package vulnerabilities
         run: uv run pip-audit --skip-editable || true
+
+  test-status:
+    name: test
+    needs: [lint, test, security]
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+      - name: Check test status
+        run: |
+          if [[ "${{ needs.lint.result }}" == "failure" || "${{ needs.test.result }}" == "failure" || "${{ needs.security.result }}" == "failure" ]]; then
+            echo "❌ One or more checks failed"
+            exit 1
+          else
+            echo "✅ All checks passed"
+            exit 0
+          fi
