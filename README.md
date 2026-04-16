@@ -122,12 +122,17 @@ supercharge-ai-dev/
 ├── .claude/                       # Claude Code custom commands
 │   └── commands/
 ├── .github/
-│   └── workflows/                 # GitHub Actions CI/CD
-│       ├── tests.yml              # Automated test runs
-│       └── deploy.yml             # Deployment workflow (manual)
+│   ├── workflows/                 # GitHub Actions CI/CD
+│   │   ├── test.yml               # Tests & linting (all branches)
+│   │   ├── deploy.yml             # Deployment (dev/stg/prod)
+│   │   └── validate-gitflow.yml   # PR target validation
+│   ├── BRANCH_PROTECTION.md       # Branch protection rules documentation
+│   └── SECRETS.md                 # Environment secrets guide
 ├── docs/                          # Documentation
 │   ├── SETUP.md                   # Detailed setup guide
 │   ├── ARCHITECTURE.md            # System design and patterns
+│   ├── GITFLOW.md                 # GitFlow branching strategy
+│   ├── CI-CD-STANDARDS.md         # CI/CD best practices
 │   └── superpowers/               # Claude Code superpowers config
 ├── notebooks/                     # Databricks notebooks
 │   ├── 1_hello_world.py           # Hello world example
@@ -135,6 +140,8 @@ supercharge-ai-dev/
 ├── resources/                     # Databricks Asset Bundle definitions
 │   ├── hello_world_job.yml        # Hello world job
 │   └── config_demo_job.yml        # Configuration demo job
+├── scripts/                       # Utility scripts
+│   └── setup-branch-protection.sh # Configure GitHub branch protection
 ├── src/supercharge_ai/            # Main Python package
 │   ├── __init__.py                # Package exports
 │   ├── config.py                  # Configuration management
@@ -146,14 +153,126 @@ supercharge-ai-dev/
 │   └── unit/                      # Unit tests by feature
 │       ├── test_config.py
 │       └── test_logger.py
-├── .pre-commit-config.yaml        # Pre-commit hooks
-├── databricks.yml                 # DAB bundle configuration
-├── project_config.yml             # Per-environment configuration
-├── pyproject.toml                 # Project metadata, dependencies, tool config
+├── .pre-commit-config.yaml        # Pre-commit hooks (10 checks)
+├── .python-version                # Python 3.12
 ├── CLAUDE.md                      # Claude Code guidelines
-├── version.txt                    # Version string
-└── uv.lock                        # Dependency lock file
+├── databricks.yml                 # DAB bundle configuration (dev/stg/prod)
+├── project_config.yml             # Per-environment configuration
+├── pyproject.toml                 # Project metadata & dependencies
+├── uv.lock                        # Dependency lock file
+└── version.txt                    # Version string
 ```
+
+## GitFlow Strategy
+
+This project uses a professional GitFlow branching strategy with automated promotion through environments:
+
+```
+Feature Branch
+    ↓ (PR to dev)
+dev (Development)
+    ↓ (PR to stg)
+stg (Staging)
+    ↓ (PR to master)
+master (Production)
+```
+
+### Branches
+
+| Branch | Environment | Protection | Purpose |
+|--------|-------------|-----------|---------|
+| `feat/*` | Local | Tests required | Feature development |
+| `dev` | DEV workspace | Full protection | Integration point |
+| `stg` | STG workspace | Full protection | Pre-production testing |
+| `master` | PROD workspace | Full protection | Production releases |
+
+### Workflow
+
+1. **Create Feature Branch** from `dev`
+   ```bash
+   git checkout dev
+   git pull origin dev
+   git checkout -b feat/your-feature-name
+   ```
+
+2. **Develop & Test Locally**
+   ```bash
+   uv run pytest               # Run tests
+   uv run ruff check .         # Lint
+   uv run pre-commit run --all-files  # All checks
+   ```
+
+3. **Push & Create PR to `dev`**
+   ```bash
+   git push origin feat/your-feature-name
+   # Create PR on GitHub targeting 'dev'
+   ```
+
+4. **Automatic Pipeline**
+   - ✅ Tests run on PR
+   - ✅ Code review required (1 approval)
+   - ✅ Status checks must pass
+   - ✅ Auto-deploys to DEV on merge
+
+5. **Promote to Staging**
+   - Create PR from `dev` → `stg`
+   - Same protections apply
+   - Auto-deploys to STG on merge
+
+6. **Release to Production**
+   - Create PR from `dev` → `master`
+   - Same protections apply
+   - Auto-deploys to PROD on merge
+
+### Branch Protection
+
+All integration branches (`dev`, `stg`, `master`) are protected with:
+
+- ✅ Require pull requests before merge
+- ✅ Require 1 code review approval
+- ✅ Dismiss stale reviews on new commits
+- ✅ Require status checks pass (`test` workflow)
+- ✅ Require branches up to date
+- ✅ Enforce on administrators
+- ✅ Prevent force pushes
+- ✅ Prevent deletions
+
+### GitFlow Validation
+
+Two layers ensure proper promotion:
+
+1. **GitHub Actions** (`validate-gitflow.yml`)
+   - Validates PR targets on every PR
+   - Blocks invalid flows immediately
+
+2. **GitHub Branch Protection**
+   - Enforces rules at GitHub level
+   - Prevents bypass of checks
+
+See [docs/GITFLOW.md](docs/GITFLOW.md) for complete details.
+
+## CI/CD Pipeline
+
+### Test Workflow (`test.yml`)
+- **Trigger:** All branches (push & PR)
+- **Jobs:** Lint, Test, Security
+- **Duration:** ~5-10 minutes
+- **Status:** Must pass before merge
+
+### Deploy Workflows
+- **`dev` branch** → Deploy to DEV workspace
+- **`stg` branch** → Deploy to STG workspace
+- **`master` branch** → Deploy to PROD workspace
+
+Each deployment:
+1. Builds Python wheel
+2. Validates bundle configuration
+3. Deploys to Databricks
+4. Runs validation job
+
+See [.github/workflows/](\.github/workflows/) for workflow files.
+See [.github/BRANCH_PROTECTION.md](.github/BRANCH_PROTECTION.md) for protection rules.
+See [docs/CI-CD-STANDARDS.md](docs/CI-CD-STANDARDS.md) for best practices.
 
 ## Development Workflow
 
