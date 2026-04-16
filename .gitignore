@@ -2,6 +2,7 @@
 
 # DAB
 .bundle/
+.databricks/
 
 # Development environment artifacts
 .agents/

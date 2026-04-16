@@ -3,10 +3,13 @@ name: Deploy via DAB
 on:
   push:
     branches:
-      - main
+      - dev
+      - stg
+      - master
 
 jobs:
   deploy-dev:
+    if: github.ref == 'refs/heads/dev'
     runs-on: ubuntu-latest
     environment:
       name: dev
@@ -47,7 +50,7 @@ jobs:
         run: databricks bundle run hello_world_job --target dev
 
   deploy-stg:
-    needs: deploy-dev
+    if: github.ref == 'refs/heads/stg'
     runs-on: ubuntu-latest
     environment:
       name: stg
@@ -84,8 +87,11 @@ jobs:
       - name: Deploy to stg
         run: databricks bundle deploy --target stg
 
+      - name: Run validation job
+        run: databricks bundle run hello_world_job --target stg
+
   deploy-prod:
-    needs: deploy-stg
+    if: github.ref == 'refs/heads/master'
     runs-on: ubuntu-latest
     environment:
       name: prod
@@ -121,3 +127,6 @@ jobs:
 
       - name: Deploy to prod
         run: databricks bundle deploy --target prod
+
+      - name: Run validation job
+        run: databricks bundle run hello_world_job --target prod

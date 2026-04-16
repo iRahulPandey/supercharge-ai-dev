@@ -1,25 +1,54 @@
 repos:
+  # Code formatting and safety
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v4.5.0
     hooks:
       - id: trailing-whitespace
+        name: Trim trailing whitespace
       - id: end-of-file-fixer
+        name: Fix end of file issues
       - id: check-yaml
+        name: Validate YAML files
+      - id: check-json
+        name: Validate JSON files
       - id: check-added-large-files
+        name: Check for large files
+        args: ['--maxkb=500']
       - id: check-merge-conflict
+        name: Check for merge conflicts
       - id: detect-private-key
+        name: Detect private keys and secrets
+      - id: check-case-conflict
+        name: Check for case conflicts
+      - id: check-docstring-first
+        name: Check docstring is first
+      - id: debug-statements
+        name: Check for debug statements
 
+  # Secret scanning - industry standard
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.18.2
+    hooks:
+      - id: gitleaks
+        name: Detect secrets with gitleaks
+        stages: [pre-commit]
+
+  # Python linting and formatting
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.15.1
     hooks:
       - id: ruff
+        name: Lint with Ruff
         args: [--fix]
       - id: ruff-format
+        name: Format with Ruff
 
+  # Type checking
   - repo: https://github.com/pre-commit/mirrors-mypy
     rev: v1.8.0
     hooks:
       - id: mypy
+        name: Type check with MyPy
         additional_dependencies:
           - pydantic
           - types-PyYAML
