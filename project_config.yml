@@ -1,0 +1,31 @@
+# Project Configuration — Dev, Staging, Production
+
+dev:
+  catalog: dev
+  schema: supercharge_ai
+  volume: data
+  llm_endpoint: databricks-llama-4-maverick
+  embedding_endpoint: databricks-gte-large-en
+  warehouse_id: ""
+  vector_search_endpoint: supercharge_vs_endpoint
+  genie_space_id: ""
+
+stg:
+  catalog: stg
+  schema: supercharge_ai
+  volume: data
+  llm_endpoint: databricks-llama-4-maverick
+  embedding_endpoint: databricks-gte-large-en
+  warehouse_id: ""
+  vector_search_endpoint: supercharge_vs_endpoint
+  genie_space_id: ""
+
+prod:
+  catalog: prod
+  schema: supercharge_ai
+  volume: data
+  llm_endpoint: databricks-llama-4-maverick
+  embedding_endpoint: databricks-gte-large-en
+  warehouse_id: ""
+  vector_search_endpoint: supercharge_vs_endpoint
+  genie_space_id: ""
