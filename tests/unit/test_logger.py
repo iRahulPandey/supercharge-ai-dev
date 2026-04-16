@@ -5,8 +5,6 @@ from __future__ import annotations
 import tempfile
 from pathlib import Path
 
-from loguru import logger as loguru_logger
-
 from supercharge_ai.logger import setup_logger
 
 

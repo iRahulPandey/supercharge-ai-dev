@@ -2225,7 +2225,7 @@ The core package providing reusable functionality:
   - Loads from `project_config.yml`
   - Supports dev/acc/prd environments
   - Properties for fully qualified names
-  
+
 - **`logger.py`** — Structured logging via Loguru
   - Console and file handlers
   - Log rotation and retention
