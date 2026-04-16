@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from supercharge_ai.config import ProjectConfig, load_config
+from supercharge_ai.logger import setup_logger
 
 __version__ = "0.0.1"
 __author__ = "Rahul Pandey"
@@ -12,4 +13,5 @@ __all__ = [
     "__version__",
     "ProjectConfig",
     "load_config",
+    "setup_logger",
 ]
