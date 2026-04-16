@@ -36,4 +36,5 @@ build/
 # Test artifacts
 .pytest_cache/
 .coverage
+coverage.xml
 htmlcov/
