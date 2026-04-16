@@ -8,30 +8,34 @@ dependencies = [
     "databricks-sdk==0.85.0",
     "loguru==0.7.3",
     "python-dotenv==1.1.1",
-    "pyyaml>=6.0, <7",
+    "pyyaml==6.0.2",
+    "databricks-vectorsearch==0.63",
+    "mlflow==3.8.1",
+    "databricks-agents==1.8.2",
 ]
 
 [project.optional-dependencies]
 dev = [
-    "databricks-connect>=17.0, <18",
-    "ipykernel>=6.29.5, <7",
-    "pip>=25.0.1, <26",
-    "pre-commit>=4.1.0, <5",
-    "pytest>=8.3.4, <9",
-    "pytest-asyncio>=0.23, <1",
-    "pytest-cov>=6.0.0, <7",
-    "ruff>=0.15.1, <1",
+    "databricks-connect==17.0.0",
+    "ipykernel==6.29.5",
+    "pip==25.0.1",
+    "pre-commit==4.1.0",
+    "pytest==8.3.4",
+    "pytest-asyncio==0.24.0",
+    "pytest-cov==6.0.0",
+    "ruff==0.15.1",
+    "mypy==1.8.0",
 ]
 
 ci = [
-    "pre-commit>=4.1.0, <5",
-    "pytest>=8.3.4, <9",
-    "pytest-asyncio>=0.23, <1",
-    "pytest-cov>=6.0.0, <7",
+    "pre-commit==4.1.0",
+    "pytest==8.3.4",
+    "pytest-asyncio==0.24.0",
+    "pytest-cov==6.0.0",
 ]
 
 [build-system]
-requires = ["setuptools>=72.0"]
+requires = ["setuptools==72.0.0"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
