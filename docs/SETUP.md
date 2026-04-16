@@ -244,23 +244,23 @@ Create necessary Unity Catalog objects in your Databricks workspace. Log in to y
 ```sql
 -- Create catalogs if they don't exist
 CREATE CATALOG IF NOT EXISTS dev;
-CREATE CATALOG IF NOT EXISTS acc;
-CREATE CATALOG IF NOT EXISTS prd;
+CREATE CATALOG IF NOT EXISTS stg;
+CREATE CATALOG IF NOT EXISTS prod;
 
 -- Create schemas
 CREATE SCHEMA IF NOT EXISTS dev.supercharge_ai;
-CREATE SCHEMA IF NOT EXISTS acc.supercharge_ai;
-CREATE SCHEMA IF NOT EXISTS prd.supercharge_ai;
+CREATE SCHEMA IF NOT EXISTS stg.supercharge_ai;
+CREATE SCHEMA IF NOT EXISTS prod.supercharge_ai;
 
 -- Create volumes for data storage
 CREATE VOLUME IF NOT EXISTS dev.supercharge_ai.data;
-CREATE VOLUME IF NOT EXISTS acc.supercharge_ai.data;
-CREATE VOLUME IF NOT EXISTS prd.supercharge_ai.data;
+CREATE VOLUME IF NOT EXISTS stg.supercharge_ai.data;
+CREATE VOLUME IF NOT EXISTS prod.supercharge_ai.data;
 
 -- Set permissions (adjust as needed for your workspace)
 ALTER CATALOG dev OWNER TO `account admins`;
-ALTER CATALOG acc OWNER TO `account admins`;
-ALTER CATALOG prd OWNER TO `account admins`;
+ALTER CATALOG stg OWNER TO `account admins`;
+ALTER CATALOG prod OWNER TO `account admins`;
 ```
 
 After running, verify the resources exist:
@@ -289,14 +289,14 @@ targets:
       host: https://your-dev-workspace.cloud.databricks.com
       root_path: /Workspace/Users/${workspace.current_user.userName}/.bundle/${bundle.name}/${bundle.target}
 
-  acc:
+  stg:
     workspace:
-      host: https://your-acc-workspace.cloud.databricks.com
+      host: https://your-stg-workspace.cloud.databricks.com
       root_path: /Shared/.bundle/${bundle.name}/${bundle.target}
 
-  prd:
+  prod:
     workspace:
-      host: https://your-prd-workspace.cloud.databricks.com
+      host: https://your-prod-workspace.cloud.databricks.com
       root_path: /Shared/.bundle/${bundle.name}/${bundle.target}
 ```
 
@@ -424,7 +424,7 @@ For automated deployments, create a separate service principal with limited perm
 
 ```bash
 # Create service principal in Databricks admin console
-# Grant permissions to acc and prd catalogs only
+# Grant permissions to stg and prod catalogs only
 # Create token and add as GitHub secret: DATABRICKS_TOKEN_DEPLOY
 ```
 
@@ -589,7 +589,7 @@ After completing setup:
    - Create pull request for review
 
 4. **Deploy to production:**
-   - Follow promotion process: dev → acc → prd
+   - Follow promotion process: dev → stg → prod
    - Validate bundle at each stage
    - Run full test suite before deployment
    - Monitor job runs in Databricks workspace

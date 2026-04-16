@@ -46,11 +46,11 @@ jobs:
       - name: Run validation job
         run: databricks bundle run hello_world_job --target dev
 
-  deploy-acc:
+  deploy-stg:
     needs: deploy-dev
     runs-on: ubuntu-latest
     environment:
-      name: acc
+      name: stg
     steps:
       - uses: actions/checkout@v4
 
@@ -72,23 +72,23 @@ jobs:
 
       - name: Authenticate with Databricks
         env:
-          DATABRICKS_HOST: ${{ secrets.DATABRICKS_ACC_HOST }}
-          DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_ACC_TOKEN }}
+          DATABRICKS_HOST: ${{ secrets.DATABRICKS_STG_HOST }}
+          DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_STG_TOKEN }}
         run: |
           mkdir -p ~/.databricks
           cat > ~/.databricks/DEFAULT << EOF
-          host = ${{ secrets.DATABRICKS_ACC_HOST }}
-          token = ${{ secrets.DATABRICKS_ACC_TOKEN }}
+          host = ${{ secrets.DATABRICKS_STG_HOST }}
+          token = ${{ secrets.DATABRICKS_STG_TOKEN }}
           EOF
 
-      - name: Deploy to acc
-        run: databricks bundle deploy --target acc
+      - name: Deploy to stg
+        run: databricks bundle deploy --target stg
 
-  deploy-prd:
-    needs: deploy-acc
+  deploy-prod:
+    needs: deploy-stg
     runs-on: ubuntu-latest
     environment:
-      name: prd
+      name: prod
     steps:
       - uses: actions/checkout@v4
 
@@ -110,14 +110,14 @@ jobs:
 
       - name: Authenticate with Databricks
         env:
-          DATABRICKS_HOST: ${{ secrets.DATABRICKS_PRD_HOST }}
-          DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_PRD_TOKEN }}
+          DATABRICKS_HOST: ${{ secrets.DATABRICKS_PROD_HOST }}
+          DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_PROD_TOKEN }}
         run: |
           mkdir -p ~/.databricks
           cat > ~/.databricks/DEFAULT << EOF
-          host = ${{ secrets.DATABRICKS_PRD_HOST }}
-          token = ${{ secrets.DATABRICKS_PRD_TOKEN }}
+          host = ${{ secrets.DATABRICKS_PROD_HOST }}
+          token = ${{ secrets.DATABRICKS_PROD_TOKEN }}
           EOF
 
-      - name: Deploy to prd
-        run: databricks bundle deploy --target prd
+      - name: Deploy to prod
+        run: databricks bundle deploy --target prod

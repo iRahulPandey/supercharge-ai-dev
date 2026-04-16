@@ -6,13 +6,13 @@ Configure these secrets in your GitHub repository for CI/CD:
 - `DATABRICKS_DEV_HOST` — Databricks workspace URL (e.g., https://your-workspace.cloud.databricks.com)
 - `DATABRICKS_DEV_TOKEN` — Databricks PAT (Personal Access Token)
 
-## Acceptance Environment (env:acc)
-- `DATABRICKS_ACC_HOST` — Databricks workspace URL
-- `DATABRICKS_ACC_TOKEN` — Databricks PAT
+## Staging Environment (env:stg)
+- `DATABRICKS_STG_HOST` — Databricks workspace URL
+- `DATABRICKS_STG_TOKEN` — Databricks PAT
 
-## Production Environment (env:prd)
-- `DATABRICKS_PRD_HOST` — Databricks workspace URL
-- `DATABRICKS_PRD_TOKEN` — Databricks PAT
+## Production Environment (env:prod)
+- `DATABRICKS_PROD_HOST` — Databricks workspace URL
+- `DATABRICKS_PROD_TOKEN` — Databricks PAT
 
 ### How to Create Databricks PAT
 
@@ -29,5 +29,5 @@ Configure these secrets in your GitHub repository for CI/CD:
 3. Add each secret name and value
 4. Also create GitHub Environments:
    - Settings → Environments → New environment
-   - Create `dev`, `acc`, `prd` environments
+   - Create `dev`, `stg`, `prod` environments
    - Add the corresponding secrets to each environment

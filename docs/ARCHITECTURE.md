@@ -8,7 +8,7 @@ Supercharge AI Dev is built on three core pillars:
 
 1. **Local Development** — Python package with type safety, testing, and tooling
 2. **Databricks Infrastructure** — Asset Bundles for job orchestration and reproducibility
-3. **Environment Promotion** — Seamless movement from dev → acc → prd with configuration management
+3. **Environment Promotion** — Seamless movement from dev → stg → prod with configuration management
 
 ### High-Level Architecture
 
@@ -36,12 +36,12 @@ Supercharge AI Dev is built on three core pillars:
 ├─────────────────────────────────────────────────────────────┤
 │  Workflows: Tests, Linting, Security Scans                │
 └─────────────────────────────────────────────────────────────┘
-                              ↓ deploy -t {dev|acc|prd}
+                              ↓ deploy -t {dev|stg|prod}
 ┌──────────────┬──────────────┬──────────────────────────────┐
-│   Dev Env    │   Acc Env    │   Production Env            │
+│   Dev Env    │   Stg Env    │   Production Env            │
 ├──────────────┼──────────────┼──────────────────────────────┤
 │ Workspace    │ Workspace    │ Workspace                   │
-│ Catalog: dev │ Catalog: acc │ Catalog: prd               │
+│ Catalog: dev │ Catalog: stg │ Catalog: prod              │
 │ Schema:      │ Schema:      │ Schema:                    │
 │   superchg   │   superchg   │   superchg                 │
 │ Jobs:        │ Jobs:        │ Jobs:                      │
@@ -102,7 +102,7 @@ resources/
 
 **Bundle features:**
 - Declarative job definitions
-- Multi-target deployment (dev/acc/prd)
+- Multi-target deployment (dev/stg/prod)
 - Version control of infrastructure
 - Reproducible deployments
 
@@ -117,13 +117,13 @@ dev:
   llm_endpoint: databricks-llama-4-maverick
   embedding_endpoint: databricks-gte-large-en
 
-acc:
-  catalog: acc
+stg:
+  catalog: stg
   schema: supercharge_ai
   # Same structure as dev
 
-prd:
-  catalog: prd
+prod:
+  catalog: prod
   schema: supercharge_ai
   # Same structure as dev
 ```
@@ -161,7 +161,7 @@ tests/
 ┌──────────────────────────────────────────────────────┐
 │  1. Environment Variables (highest priority)        │
 │     DATABRICKS_HOST, DATABRICKS_TOKEN               │
-│     ENVIRONMENT="dev|acc|prd"                       │
+│     ENVIRONMENT="dev|stg|prod"                      │
 └──────────────────────────────────────────────────────┘
                         ↓
 ┌──────────────────────────────────────────────────────┐
@@ -255,17 +255,17 @@ class Config:
 └─────────────────────────────────────────────────────────────┘
                         ↓ manual promotion
 ┌─────────────────────────────────────────────────────────────┐
-│  4. ACCEPTANCE DEPLOYMENT                                   │
-│     Environment: acc workspace                             │
-│     Command: databricks bundle deploy -t acc               │
+│  4. STAGING DEPLOYMENT                                      │
+│     Environment: stg workspace                             │
+│     Command: databricks bundle deploy -t stg               │
 │     Testing: Integration & E2E tests                       │
 │     Sign-off: Team lead approval                          │
 └─────────────────────────────────────────────────────────────┘
                         ↓ manual promotion
 ┌─────────────────────────────────────────────────────────────┐
 │  5. PRODUCTION DEPLOYMENT                                   │
-│     Environment: prd workspace                             │
-│     Command: databricks bundle deploy -t prd               │
+│     Environment: prod workspace                            │
+│     Command: databricks bundle deploy -t prod              │
 │     Validation: Full test suite + manual QA               │
 │     Monitoring: Job success rates, error logs              │
 └─────────────────────────────────────────────────────────────┘
@@ -277,8 +277,8 @@ Each environment has its own configuration that flows through the system:
 
 ```
 Development:  catalog=dev,   schema=supercharge_ai
-Acceptance:   catalog=acc,   schema=supercharge_ai
-Production:   catalog=prd,   schema=supercharge_ai
+Staging:      catalog=stg,   schema=supercharge_ai
+Production:   catalog=prod,  schema=supercharge_ai
 ```
 
 Jobs automatically use the target environment's configuration via the `ENVIRONMENT` variable set during bundle deployment.

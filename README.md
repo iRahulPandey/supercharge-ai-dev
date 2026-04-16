@@ -2,11 +2,11 @@
 
 A comprehensive Python framework for building AI applications on Databricks with declarative infrastructure automation, integrated configuration management, and production-grade tooling.
 
-**Supercharge AI Dev** combines the Databricks AI Dev Kit with Databricks Asset Bundles (DAB) to simplify development, testing, and deployment of AI workflows across development, acceptance, and production environments.
+**Supercharge AI Dev** combines the Databricks AI Dev Kit with Databricks Asset Bundles (DAB) to simplify development, testing, and deployment of AI workflows across development, staging, and production environments.
 
 ## Features
 
-- ✅ **Multi-environment configuration** — Dev, acceptance, production with environment-specific overrides
+- ✅ **Multi-environment configuration** — Dev, staging, production with environment-specific overrides
 - ✅ **Databricks Asset Bundles integration** — Declarative job and resource definitions via YAML
 - ✅ **AI/LLM ready** — Built-in support for LLM endpoints, embedding models, and vector search
 - ✅ **Production logging** — Loguru integration with structured logging
@@ -343,12 +343,12 @@ targets:
     mode: development
     workspace:
       host: https://your-dev-workspace.cloud.databricks.com
-  acc:
+  stg:
     workspace:
-      host: https://your-acc-workspace.cloud.databricks.com
-  prd:
+      host: https://your-stg-workspace.cloud.databricks.com
+  prod:
     workspace:
-      host: https://your-prd-workspace.cloud.databricks.com
+      host: https://your-prod-workspace.cloud.databricks.com
 ```
 
 ## Troubleshooting

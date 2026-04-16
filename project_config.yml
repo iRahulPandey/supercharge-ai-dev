@@ -1,4 +1,4 @@
-# Project Configuration — Dev, Acceptance, Production
+# Project Configuration — Dev, Staging, Production
 
 dev:
   catalog: dev
@@ -10,8 +10,8 @@ dev:
   vector_search_endpoint: supercharge_vs_endpoint
   genie_space_id: ""
 
-acc:
-  catalog: acc
+stg:
+  catalog: stg
   schema: supercharge_ai
   volume: data
   llm_endpoint: databricks-llama-4-maverick
@@ -20,8 +20,8 @@ acc:
   vector_search_endpoint: supercharge_vs_endpoint
   genie_space_id: ""
 
-prd:
-  catalog: prd
+prod:
+  catalog: prod
   schema: supercharge_ai
   volume: data
   llm_endpoint: databricks-llama-4-maverick
