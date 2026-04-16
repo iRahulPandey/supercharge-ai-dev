@@ -29,7 +29,7 @@ if ! gh auth status &> /dev/null; then
 fi
 
 # Get current repository
-REPO=$(gh repo view --json nameWithOwner -q)
+REPO=$(gh repo view --json nameWithOwner --jq '.nameWithOwner')
 if [ -z "$REPO" ]; then
     echo -e "${RED}❌ Could not determine repository${NC}"
     echo "   Make sure you're in a GitHub repository directory"
@@ -46,7 +46,7 @@ setup_branch_protection() {
     local branch=$1
     echo -e "${YELLOW}⏳ Setting up protection for branch: $branch${NC}"
 
-    gh api repos/$REPO/branches/$branch/protection \
+    gh api -X PUT repos/$REPO/branches/$branch/protection \
         --input - << EOF
 {
   "required_status_checks": {
@@ -59,9 +59,9 @@ setup_branch_protection() {
     "required_approving_review_count": 1
   },
   "enforce_admins": true,
-  "required_linear_history": false,
   "allow_force_pushes": false,
-  "allow_deletions": false
+  "allow_deletions": false,
+  "restrictions": null
 }
 EOF
 
