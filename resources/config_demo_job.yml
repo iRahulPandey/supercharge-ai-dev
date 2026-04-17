@@ -10,7 +10,7 @@ resources:
       environments:
         - environment_key: default
           spec:
-            environment_version: "3.18.15"
+            environment_version: "4"
       tasks:
         - task_key: config_demo
           notebook_task:
