@@ -43,6 +43,12 @@ jobs:
           token = ${{ secrets.DATABRICKS_DEV_TOKEN }}
           EOF
 
+      - name: Validate bundle configuration
+        env:
+          DATABRICKS_HOST: ${{ secrets.DATABRICKS_DEV_HOST }}
+          DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_DEV_TOKEN }}
+        run: databricks bundle validate --target dev
+
       - name: Deploy to dev
         env:
           DATABRICKS_HOST: ${{ secrets.DATABRICKS_DEV_HOST }}
@@ -89,6 +95,12 @@ jobs:
           token = ${{ secrets.DATABRICKS_STG_TOKEN }}
           EOF
 
+      - name: Validate bundle configuration
+        env:
+          DATABRICKS_HOST: ${{ secrets.DATABRICKS_STG_HOST }}
+          DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_STG_TOKEN }}
+        run: databricks bundle validate --target stg
+
       - name: Deploy to stg
         env:
           DATABRICKS_HOST: ${{ secrets.DATABRICKS_STG_HOST }}
@@ -134,6 +146,12 @@ jobs:
           host = ${{ secrets.DATABRICKS_PROD_HOST }}
           token = ${{ secrets.DATABRICKS_PROD_TOKEN }}
           EOF
+
+      - name: Validate bundle configuration
+        env:
+          DATABRICKS_HOST: ${{ secrets.DATABRICKS_PROD_HOST }}
+          DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_PROD_TOKEN }}
+        run: databricks bundle validate --target prod
 
       - name: Deploy to prod
         env:
