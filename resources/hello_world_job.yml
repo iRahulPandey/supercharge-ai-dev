@@ -11,10 +11,5 @@ resources:
         - task_key: hello_world
           notebook_task:
             notebook_path: ${workspace.root_path}/notebooks/1_hello_world
-          new_cluster:
-            spark_version: 15.4.x-scala2.12
-            node_type_id: i3.xlarge
-            num_workers: 1
-            spark_conf:
-              spark.databricks.cluster.profile: singleNode
+          serverless_compute: {}
       max_concurrent_runs: 1
