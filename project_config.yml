@@ -1,8 +1,29 @@
-# Project Configuration — Dev, Staging, Production
+# Project Configuration — per-environment + per-dataset
+#
+# Two top-level sections:
+#   - Environment settings (local/dev/stg/prod): catalog + shared infra endpoints
+#   - datasets: each ingestion's source (input) and destination (output), using
+#     the same {catalog, schema, table} shape for both
+#
+# Notebooks receive `env` + `dataset` as parameters, then resolve:
+#   - Source  = datasets[<dataset>].input   (fully qualified — catalog/schema/table all set)
+#   - Target  = datasets[<dataset>].output  (catalog defaults to <env>.catalog if omitted)
+
+# --- Environment settings ---
+
+# Local target writes to the dev catalog for personal testing. Override to a
+# user-specific catalog later if needed.
+local:
+  catalog: dev
+  volume: data
+  llm_endpoint: databricks-llama-4-maverick
+  embedding_endpoint: databricks-gte-large-en
+  warehouse_id: ""
+  vector_search_endpoint: supercharge_vs_endpoint
+  genie_space_id: ""
 
 dev:
   catalog: dev
-  schema: supercharge_ai
   volume: data
   llm_endpoint: databricks-llama-4-maverick
   embedding_endpoint: databricks-gte-large-en
@@ -12,7 +33,6 @@ dev:
 
 stg:
   catalog: stg
-  schema: supercharge_ai
   volume: data
   llm_endpoint: databricks-llama-4-maverick
   embedding_endpoint: databricks-gte-large-en
@@ -21,11 +41,27 @@ stg:
   genie_space_id: ""
 
 prod:
-  catalog: prod
-  schema: supercharge_ai
+  catalog: prd
   volume: data
   llm_endpoint: databricks-llama-4-maverick
   embedding_endpoint: databricks-gte-large-en
   warehouse_id: ""
   vector_search_endpoint: supercharge_vs_endpoint
   genie_space_id: ""
+
+# --- Datasets ---
+#
+# Same {catalog, schema, table} shape for both input and output. For output,
+# `catalog` is optional — omit it to inherit the current env's catalog, or set
+# explicitly if you want to write to a fixed catalog regardless of env.
+
+datasets:
+  media_customer_reviews:
+    input:
+      catalog: samples
+      schema: bakehouse
+      table: media_customer_reviews
+    output:
+      # catalog inherited from env.catalog (dev/stg/prd)
+      schema: bakehouse
+      table: media_customer_reviews

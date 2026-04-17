@@ -1,0 +1,30 @@
+resources:
+  jobs:
+    ingest_media_customer_reviews_job:
+      name: Ingest Media Customer Reviews
+      description: >
+        Full-refresh ingestion from samples.bakehouse.media_customer_reviews into
+        {target_catalog}.bakehouse.media_customer_reviews. Catalog varies per target.
+      tags:
+        deployed_by: ${var.deployed_by}
+        source: ${var.deployment_source}
+        environment: ${bundle.target}
+      environments:
+        - environment_key: default
+          spec:
+            environment_version: "4"
+            dependencies:
+              # Installs the project wheel (supercharge_ai package + transitive deps:
+              # loguru, pydantic, pyyaml, etc.). DAB uploads the wheel and rewrites
+              # this relative path to the workspace location at deploy time.
+              - ../dist/*.whl
+      tasks:
+        - task_key: ingest
+          notebook_task:
+            notebook_path: ../notebooks/01_ingest_media_customer_reviews.py
+            base_parameters:
+              env: ${bundle.target}
+              dataset: media_customer_reviews
+              config_path: ${workspace.file_path}/project_config.yml
+          environment_key: default
+      max_concurrent_runs: 1
