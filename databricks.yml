@@ -26,7 +26,6 @@ artifacts:
 
 targets:
   dev:
-    mode: development
     default: true
     workspace:
       host: https://dbc-8943fe10-4fbf.cloud.databricks.com
