@@ -7,14 +7,13 @@ resources:
         deployed_by: ${var.deployed_by}
         source: ${var.deployment_source}
         environment: ${bundle.target}
+      environments:
+        - environment_key: default
+          spec:
+            environment_version: "3.18.15"
       tasks:
         - task_key: config_demo
           notebook_task:
             notebook_path: ${workspace.root_path}/notebooks/2_config_usage
-          new_cluster:
-            spark_version: 15.4.x-scala2.12
-            node_type_id: i3.xlarge
-            num_workers: 1
-            spark_conf:
-              spark.databricks.cluster.profile: singleNode
+          environment_key: default
       max_concurrent_runs: 1
