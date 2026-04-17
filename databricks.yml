@@ -29,20 +29,20 @@ targets:
     default: true
     workspace:
       host: https://dbc-8943fe10-4fbf.cloud.databricks.com
-      root_path: /Shared/.bundle/${bundle.name}/${bundle.target}
+      root_path: /Workspace/supercharge-ai/dev
     variables:
       schedule_pause_status: PAUSED
 
   stg:
     workspace:
       host: https://dbc-8943fe10-4fbf.cloud.databricks.com
-      root_path: /Shared/.bundle/${bundle.name}/${bundle.target}
+      root_path: /Workspace/supercharge-ai/stg
     variables:
       schedule_pause_status: PAUSED
 
   prod:
     workspace:
       host: https://dbc-8943fe10-4fbf.cloud.databricks.com
-      root_path: /Shared/.bundle/${bundle.name}/${bundle.target}
+      root_path: /Workspace/supercharge-ai/prod
     variables:
       schedule_pause_status: UNPAUSED
