@@ -1,625 +1,160 @@
 # Supercharge AI Dev
 
-A comprehensive Python framework for building AI applications on Databricks with declarative infrastructure automation, integrated configuration management, and production-grade tooling.
+AI/data workflows on Databricks, deployed declaratively via Databricks Asset Bundles (DAB). Python 3.12, serverless compute, Unity Catalog, OAuth service principals, GitFlow CI/CD.
 
-**Supercharge AI Dev** combines the Databricks AI Dev Kit with Databricks Asset Bundles (DAB) to simplify development, testing, and deployment of AI workflows across development, staging, and production environments.
+> **Working on this repo with Claude or another AI assistant?** Read [`CLAUDE.md`](./CLAUDE.md) first — it documents the required workflow, naming conventions, and ship-to-env rules every feature must follow.
 
-## Features
-
-- ✅ **Multi-environment configuration** — Dev, staging, production with environment-specific overrides
-- ✅ **Databricks Asset Bundles integration** — Declarative job and resource definitions via YAML
-- ✅ **AI/LLM ready** — Built-in support for LLM endpoints, embedding models, and vector search
-- ✅ **Production logging** — Loguru integration with structured logging
-- ✅ **Type-safe configuration** — Pydantic validation for all configuration
-- ✅ **Databricks SDK** — Pre-configured authentication and workspace access
-- ✅ **Development tooling** — Pre-commit hooks, linting, formatting, type checking
-- ✅ **Comprehensive testing** — Unit tests, pytest fixtures, test coverage tracking
-- ✅ **Databricks notebooks support** — Notebook development with proper cell handling
-- ✅ **CI/CD ready** — GitHub Actions workflows for automated testing and deployment
+---
 
 ## Quick Start
 
 ### Prerequisites
 
-- **Python 3.12+** (check `.python-version` for pinned version)
-- **Git**
-- **Databricks CLI** (for workspace authentication)
-- **VS Code** (recommended, with Databricks extension)
+- Python **3.12** (matches Databricks Serverless Environment 4)
+- `uv` — [install guide](https://docs.astral.sh/uv/getting-started/installation/)
+- Databricks CLI v0.218+ — `curl -fsSL https://raw.githubusercontent.com/databricks/setup-cli/main/install.sh | sh`
+- An OAuth profile in `~/.databrickscfg` pointing at `https://dbc-8943fe10-4fbf.cloud.databricks.com`
 
-### 1. Clone Repository
+### Setup
 
 ```bash
-git clone <repository-url>
+git clone <repo-url>
 cd supercharge-ai-dev
+uv sync                          # install deps
+uv run pre-commit install        # enable git hooks
+uv run pytest                    # verify setup (should pass)
+databricks bundle validate --target local    # verify DAB auth + config
 ```
 
-### 2. Python 3.12 Installation
-
-**macOS (using Homebrew):**
-```bash
-brew install python@3.12
-/usr/local/opt/python@3.12/bin/python3.12 -m venv venv
-source venv/bin/activate
-```
-
-**macOS (using pyenv):**
-```bash
-brew install pyenv
-pyenv install 3.12.x
-pyenv local 3.12.x
-python -m venv venv
-source venv/bin/activate
-```
-
-**Linux (Ubuntu/Debian):**
-```bash
-sudo apt-get update
-sudo apt-get install python3.12 python3.12-venv
-python3.12 -m venv venv
-source venv/bin/activate
-```
-
-**Windows (using python.org installer):**
-```cmd
-# Download from https://www.python.org/downloads/
-python -m venv venv
-venv\Scripts\activate
-```
-
-### 3. Install Dependencies
-
-We recommend **uv** for fast, reliable dependency management:
-
-**Install uv:**
-```bash
-curl -LsSf https://astral.sh/uv/install.sh | sh  # macOS/Linux
-# Windows: use the MSI installer or `pip install uv`
-```
-
-**Install project dependencies:**
-```bash
-uv sync --extra dev     # Install all dependencies including dev tools
-```
-
-Or use traditional pip:
-```bash
-pip install -e ".[dev]"  # Install with dev dependencies
-```
-
-### 4. Databricks Authentication
-
-Choose one of three authentication methods:
-
-**Option A: Databricks CLI (Recommended)**
-```bash
-databricks configure --token
-# Enter workspace URL and personal access token when prompted
-```
-
-**Option B: Environment Variables**
-```bash
-export DATABRICKS_HOST="https://your-workspace.cloud.databricks.com"
-export DATABRICKS_TOKEN="dapi..."
-```
-
-**Option C: VS Code Extension**
-- Install "Databricks" extension
-- Authenticate through the extension UI
-- Configuration is automatically picked up
-
-### 5. Verify Installation
+### Your first local deploy
 
 ```bash
-uv run pytest                      # Run test suite (should pass)
-uv run ruff check .                # Lint check
-uv run python main.py              # Run entry point
+uv build                                          # build the project wheel
+databricks bundle deploy --target local           # upload to /Users/you/.bundle/supercharge-ai/local/
+databricks bundle summary --target local          # list deployed jobs with URLs
+databricks bundle destroy --target local          # clean up when you're done
 ```
+
+---
+
+## DAB Architecture
+
+Four targets cleanly separate local dev from managed envs:
+
+| Target | Mode | Workspace path | Who deploys |
+|---|---|---|---|
+| `local` *(default)* | `development` | `/Users/{you}/.bundle/supercharge-ai/local/` | You, from your machine |
+| `dev` | `production` | `/Workspace/supercharge-ai/dev/` | CI on `dev` branch |
+| `stg` | `production` | `/Workspace/supercharge-ai/stg/` | CI on `stg` branch |
+| `prod` | `production` | `/Workspace/supercharge-ai/prod/` | CI on `master` branch |
+
+Every resource is tagged with `deployed_by`, `source` (`local` vs `cicd`), and `environment` so you can tell deployments apart in the Databricks UI / audit logs.
+
+Deployment details and folder permissions: [`docs/DEPLOYMENT.md`](./docs/DEPLOYMENT.md).
+
+---
+
+## GitFlow
+
+```
+feature/<name>  →  dev  →  stg  →  master
+                   ↓        ↓        ↓
+                   CI deploys to matching DAB target
+```
+
+- Start every change from a `feature/*` branch cut off `dev`.
+- PRs default to `--base dev`. Never PR straight into `master`.
+- `pr-preview.yml` runs `databricks bundle validate` and a dry-run against the PR's target branch.
+- Full strategy: [`docs/GITFLOW.md`](./docs/GITFLOW.md).
+
+---
+
+## CI/CD Pipelines
+
+`.github/workflows/`:
+
+- **`deploy.yml`** — on push to `dev`/`stg`/`master`, deploys to the matching DAB target using OAuth service principals.
+  - Path filters skip deploys on docs/test-only changes.
+  - Concurrency groups prevent parallel deploys on the same branch.
+  - Post-deploy summary writes commit SHA, deployer, and `bundle summary` output to the Actions run.
+  - Jobs are **deployed but not triggered** on `stg`/`prod` (they wait for manual trigger or schedule).
+- **`pr-preview.yml`** — on PRs, validates and dry-runs against the correct target; posts results as a PR comment.
+- **`ci.yml`** — tests + linting on every PR.
+
+Service principal and secret setup: [`.github/SECRETS.md`](./.github/SECRETS.md). CI/CD conventions: [`docs/CI-CD-STANDARDS.md`](./docs/CI-CD-STANDARDS.md).
+
+---
+
+## Building a Feature (High Level)
+
+The detailed workflow (and rules for simple vs complex asks) lives in [`CLAUDE.md`](./CLAUDE.md). Short version:
+
+1. `git checkout -b feature/<name>` off `dev`
+2. Add a notebook: `notebooks/NN_snake_case.py` (Databricks notebook format — `# Databricks notebook source` at top, `# COMMAND ----------` between cells)
+3. Add a job YAML: `resources/<name>_job.yml` — serverless env, installs the wheel via `dependencies: [../dist/*.whl]`, tags injected from DAB variables
+4. `uv build && databricks bundle deploy --target local && databricks bundle run <job_name> --target local`
+5. When green, raise a PR to `dev`
+
+---
 
 ## Project Structure
 
 ```
 supercharge-ai-dev/
-├── .claude/                       # Claude Code custom commands
-│   └── commands/
+├── .ai-dev-kit/            # curated Databricks skills — consult first for Databricks Qs
+├── .claude/                # Claude Code commands + mirrored skills
 ├── .github/
-│   ├── workflows/                 # GitHub Actions CI/CD
-│   │   ├── test.yml               # Tests & linting (all branches)
-│   │   ├── deploy.yml             # Deployment (dev/stg/prod)
-│   │   └── validate-gitflow.yml   # PR target validation
-│   ├── BRANCH_PROTECTION.md       # Branch protection rules documentation
-│   └── SECRETS.md                 # Environment secrets guide
-├── docs/                          # Documentation
-│   ├── SETUP.md                   # Detailed setup guide
-│   ├── ARCHITECTURE.md            # System design and patterns
-│   ├── GITFLOW.md                 # GitFlow branching strategy
-│   ├── CI-CD-STANDARDS.md         # CI/CD best practices
-│   └── superpowers/               # Claude Code superpowers config
-├── notebooks/                     # Databricks notebooks
-│   ├── 1_hello_world.py           # Hello world example
-│   └── 2_config_usage.py          # Configuration examples
-├── resources/                     # Databricks Asset Bundle definitions
-│   ├── hello_world_job.yml        # Hello world job
-│   └── config_demo_job.yml        # Configuration demo job
-├── scripts/                       # Utility scripts
-│   └── setup-branch-protection.sh # Configure GitHub branch protection
-├── src/supercharge_ai/            # Main Python package
-│   ├── __init__.py                # Package exports
-│   ├── config.py                  # Configuration management
-│   ├── logger.py                  # Logging setup
-│   └── utils.py                   # Utility functions
-├── tests/                         # Test suite
-│   ├── conftest.py                # Pytest fixtures
-│   ├── test_imports.py            # Import validation tests
-│   └── unit/                      # Unit tests by feature
-│       ├── test_config.py
-│       └── test_logger.py
-├── .pre-commit-config.yaml        # Pre-commit hooks (10 checks)
-├── .python-version                # Python 3.12
-├── CLAUDE.md                      # Claude Code guidelines
-├── databricks.yml                 # DAB bundle configuration (dev/stg/prod)
-├── project_config.yml             # Per-environment configuration
-├── pyproject.toml                 # Project metadata & dependencies
-├── uv.lock                        # Dependency lock file
-└── version.txt                    # Version string
+│   ├── workflows/          # deploy.yml, pr-preview.yml, ci.yml
+│   └── SECRETS.md          # service principal + OAuth setup
+├── docs/
+│   ├── ARCHITECTURE.md
+│   ├── SETUP.md
+│   ├── DEPLOYMENT.md
+│   ├── GITFLOW.md
+│   ├── CI-CD-STANDARDS.md
+│   └── DAB_FILE_SYNC.md
+├── notebooks/              # Databricks notebooks (NN_snake_case.py)
+├── resources/              # DAB job definitions (*_job.yml)
+├── scripts/                # infra scripts (branch protection, etc.)
+├── src/supercharge_ai/     # shared Python utilities (config, logger)
+├── tests/                  # pytest unit tests
+├── databricks.yml          # DAB bundle config (4 targets)
+├── project_config.yml      # per-env config (catalog, schema, endpoints)
+├── pyproject.toml          # pinned deps
+└── version.txt             # package version
 ```
-
-## GitFlow Strategy
-
-This project uses a professional GitFlow branching strategy with automated promotion through environments:
-
-```
-Feature Branch
-    ↓ (PR to dev)
-dev (Development)
-    ↓ (PR to stg)
-stg (Staging)
-    ↓ (PR to master)
-master (Production)
-```
-
-### Branches
-
-| Branch | Environment | Protection | Purpose |
-|--------|-------------|-----------|---------|
-| `feat/*` | Local | Tests required | Feature development |
-| `dev` | DEV workspace | Full protection | Integration point |
-| `stg` | STG workspace | Full protection | Pre-production testing |
-| `master` | PROD workspace | Full protection | Production releases |
-
-### Workflow
-
-1. **Create Feature Branch** from `dev`
-   ```bash
-   git checkout dev
-   git pull origin dev
-   git checkout -b feat/your-feature-name
-   ```
-
-2. **Develop & Test Locally**
-   ```bash
-   uv run pytest               # Run tests
-   uv run ruff check .         # Lint
-   uv run pre-commit run --all-files  # All checks
-   ```
-
-3. **Push & Create PR to `dev`**
-   ```bash
-   git push origin feat/your-feature-name
-   # Create PR on GitHub targeting 'dev'
-   ```
-
-4. **Automatic Pipeline**
-   - ✅ Tests run on PR
-   - ✅ Code review required (1 approval)
-   - ✅ Status checks must pass
-   - ✅ Auto-deploys to DEV on merge
-
-5. **Promote to Staging**
-   - Create PR from `dev` → `stg`
-   - Same protections apply
-   - Auto-deploys to STG on merge
-
-6. **Release to Production**
-   - Create PR from `dev` → `master`
-   - Same protections apply
-   - Auto-deploys to PROD on merge
-
-### Branch Protection
-
-All integration branches (`dev`, `stg`, `master`) are protected with:
-
-- ✅ Require pull requests before merge
-- ✅ Require 1 code review approval
-- ✅ Dismiss stale reviews on new commits
-- ✅ Require status checks pass (`test` workflow)
-- ✅ Require branches up to date
-- ✅ Enforce on administrators
-- ✅ Prevent force pushes
-- ✅ Prevent deletions
-
-### GitFlow Validation
-
-Two layers ensure proper promotion:
-
-1. **GitHub Actions** (`validate-gitflow.yml`)
-   - Validates PR targets on every PR
-   - Blocks invalid flows immediately
-
-2. **GitHub Branch Protection**
-   - Enforces rules at GitHub level
-   - Prevents bypass of checks
-
-See [docs/GITFLOW.md](docs/GITFLOW.md) for complete details.
-
-## CI/CD Pipeline
-
-### Test Workflow (`test.yml`)
-- **Trigger:** All branches (push & PR)
-- **Jobs:** Lint, Test, Security
-- **Duration:** ~5-10 minutes
-- **Status:** Must pass before merge
-
-### Deploy Workflows
-- **`dev` branch** → Deploy to DEV workspace
-- **`stg` branch** → Deploy to STG workspace
-- **`master` branch** → Deploy to PROD workspace
-
-Each deployment:
-1. Builds Python wheel
-2. Validates bundle configuration
-3. Deploys to Databricks
-4. Runs validation job
-
-See [.github/workflows/](\.github/workflows/) for workflow files.
-See [.github/BRANCH_PROTECTION.md](.github/BRANCH_PROTECTION.md) for protection rules.
-See [docs/CI-CD-STANDARDS.md](docs/CI-CD-STANDARDS.md) for best practices.
-
-## Development Workflow
-
-### Run Tests
-
-```bash
-# Run all tests
-uv run pytest
-
-# Run with coverage report
-uv run pytest --cov=src --cov-report=term-missing
-
-# Run specific test file
-uv run pytest tests/unit/test_config.py
-
-# Run tests matching pattern
-uv run pytest -k test_config
-```
-
-### Code Quality
-
-```bash
-# Run linter
-uv run ruff check .
-
-# Auto-fix lint issues
-uv run ruff check . --fix
-
-# Format code
-uv run ruff format .
-
-# Type checking
-uv run python -m mypy src/ --ignore-missing-imports
-
-# All checks in one command
-uv run ruff check . && uv run ruff format . --check
-```
-
-### Pre-commit Hooks
-
-Install local pre-commit hooks:
-```bash
-uv run pre-commit install
-```
-
-Run all hooks manually:
-```bash
-uv run pre-commit run --all-files
-```
-
-### Databricks Asset Bundles
-
-**Validate bundle configuration:**
-```bash
-databricks bundle validate -t dev
-```
-
-**Deploy to dev environment:**
-```bash
-databricks bundle deploy -t dev
-```
-
-**Run a job in the bundle:**
-```bash
-databricks bundle run -t dev hello_world_job
-```
-
-**View deployment status:**
-```bash
-databricks bundle list -t dev
-```
-
-## Technologies
-
-| Component | Technology | Version | Purpose |
-|-----------|-----------|---------|---------|
-| **Runtime** | Python | 3.12+ | Application runtime |
-| **Config** | Pydantic | 2.11+ | Type-safe configuration |
-| **Workspace SDK** | databricks-sdk | 0.85+ | Databricks API client |
-| **Logging** | Loguru | 0.7+ | Structured logging |
-| **Secrets** | python-dotenv | 1.1+ | Environment variable loading |
-| **YAML** | PyYAML | 6.0+ | Configuration file parsing |
-| **Testing** | pytest | 8.3+ | Test framework |
-| **Coverage** | pytest-cov | 6.0+ | Coverage reporting |
-| **Linting** | Ruff | 0.15+ | Fast Python linter |
-| **Pre-commit** | pre-commit | 4.1+ | Git hook management |
-| **Async** | pytest-asyncio | 0.23+ | Async test support |
-| **Remote Exec** | databricks-connect | 17.0+ | Remote code execution |
-| **Notebooks** | ipykernel | 6.29+ | Interactive notebook support |
-
-## Environment Variables
-
-Create a `.env` file in the project root (not committed to git):
-
-```bash
-# Databricks Workspace
-DATABRICKS_HOST="https://your-workspace.cloud.databricks.com"
-DATABRICKS_TOKEN="dapi..."
-
-# Optional: Specific endpoint IDs
-LLM_ENDPOINT="databricks-llama-4-maverick"
-EMBEDDING_ENDPOINT="databricks-gte-large-en"
-VECTOR_SEARCH_ENDPOINT="supercharge_vs_endpoint"
-
-# Optional: Catalog configuration
-CATALOG="dev"
-SCHEMA="supercharge_ai"
-VOLUME="data"
-
-# Optional: Logging level
-LOG_LEVEL="INFO"
-```
-
-The `.env` file is loaded automatically via `python-dotenv`. See `src/supercharge_ai/config.py` for configuration details.
-
-## Git Workflow
-
-We follow Conventional Commits for clear, semantic commit messages:
-
-```bash
-<type>(<scope>): <description>
-
-# Types:
-# feat     - New feature
-# fix      - Bug fix
-# refactor - Code restructuring
-# docs     - Documentation only
-# test     - Tests or test utilities
-# chore    - Tooling, dependencies
-# perf     - Performance improvement
-# ci       - CI/CD changes
-```
-
-### Examples
-
-```bash
-git commit -m "feat(config): add support for dynamic environment loading"
-git commit -m "fix(logger): handle async logging properly"
-git commit -m "docs: update README with setup instructions"
-git commit -m "test(config): add edge case tests for validation"
-```
-
-### Branch Naming
-
-```bash
-git checkout -b feat/new-feature-name
-git checkout -b fix/issue-number-description
-git checkout -b refactor/cleanup-description
-```
-
-### Workflow
-
-1. Create feature branch: `git checkout -b feat/description`
-2. Write tests (TDD)
-3. Implement feature
-4. Run tests and linting: `uv run pytest && uv run ruff check . --fix`
-5. Commit with conventional message
-6. Create pull request for review
-7. Merge to main after approval
-
-## Configuration
-
-### Project Configuration (project_config.yml)
-
-```yaml
-dev:
-  catalog: dev
-  schema: supercharge_ai
-  volume: data
-  llm_endpoint: databricks-llama-4-maverick
-  embedding_endpoint: databricks-gte-large-en
-  warehouse_id: ""
-  vector_search_endpoint: supercharge_vs_endpoint
-  genie_space_id: ""
-```
-
-Configuration is loaded based on the `ENVIRONMENT` variable (defaults to `dev`). See `src/supercharge_ai/config.py` for implementation.
-
-### Databricks Asset Bundle (databricks.yml)
-
-```yaml
-bundle:
-  name: supercharge-ai
-
-targets:
-  dev:
-    mode: development
-    workspace:
-      host: https://your-dev-workspace.cloud.databricks.com
-  stg:
-    workspace:
-      host: https://your-stg-workspace.cloud.databricks.com
-  prod:
-    workspace:
-      host: https://your-prod-workspace.cloud.databricks.com
-```
-
-## Troubleshooting
-
-### Python Version Mismatch
-
-**Error:** `ModuleNotFoundError: No module named 'supercharge_ai'`
-
-**Solution:**
-```bash
-python --version  # Should be 3.12+
-uv venv --python 3.12  # Create venv with specific Python
-source venv/bin/activate
-uv sync --extra dev
-```
-
-### Databricks Authentication Failed
-
-**Error:** `No Databricks credentials found`
-
-**Solution:**
-```bash
-# Option 1: Configure via CLI
-databricks configure --token
-
-# Option 2: Set environment variables
-export DATABRICKS_HOST="https://workspace.cloud.databricks.com"
-export DATABRICKS_TOKEN="dapi..."
-
-# Option 3: Check existing config
-cat ~/.databrickscfg
-```
-
-### Import Errors in IDE
-
-**Solution:**
-```bash
-# Ensure package is installed in editable mode
-pip install -e "."
-
-# Rebuild virtual environment if issues persist
-rm -rf venv
-python3.12 -m venv venv
-source venv/bin/activate
-uv sync --extra dev
-```
-
-### Pre-commit Hooks Failing
-
-**Solution:**
-```bash
-# Run hooks manually to see errors
-uv run pre-commit run --all-files
-
-# Auto-fix common issues
-uv run ruff check . --fix
-uv run ruff format .
-
-# Then retry hooks
-git add .
-git commit -m "fix: address pre-commit issues"
-```
-
-### Tests Failing After Changes
-
-**Solution:**
-```bash
-# Run tests with verbose output
-uv run pytest -vv
-
-# Run specific failing test
-uv run pytest tests/unit/test_config.py::test_name -vv
-
-# Check test coverage
-uv run pytest --cov=src --cov-report=html
-open htmlcov/index.html
-```
-
-### Bundle Deployment Issues
-
-**Error:** `Workspace not found` or authentication error
-
-**Solution:**
-```bash
-# Verify Databricks credentials
-databricks workspace list
-
-# Check bundle configuration
-cat databricks.yml
-
-# Validate bundle before deploy
-databricks bundle validate -t dev
-
-# Deploy with verbose output
-databricks bundle deploy -t dev --verbose
-```
-
-## Resources
-
-### Official Documentation
-- [Databricks Asset Bundles](https://docs.databricks.com/en/dev-tools/bundles/)
-- [Databricks Python SDK](https://databricks-py.readthedocs.io/)
-- [Databricks AI Dev Kit](https://docs.databricks.com/en/ai-dev-kit/)
-- [Pydantic Documentation](https://docs.pydantic.dev/)
-
-### Project Documentation
-- [Setup Guide](docs/SETUP.md) — Detailed installation and configuration
-- [Architecture](docs/ARCHITECTURE.md) — System design and patterns
-- [CLAUDE.md](CLAUDE.md) — Development guidelines and conventions
-
-### Helpful Commands
-
-```bash
-# Check Databricks connection
-databricks workspace get-status /
-
-# List workspaces
-databricks workspace list
-
-# List jobs in bundle
-databricks bundle list -t dev
-
-# View job runs
-databricks jobs list-runs --job-id <job_id>
-
-# Get job output
-databricks jobs get-run --run-id <run_id>
-
-# Direct workspace access
-databricks workspace export --source-path /Shared/file.txt --format AUTO --output-file file.txt
-```
-
-## Contributing
-
-1. Follow TDD workflow: RED → GREEN → REFACTOR
-2. Write tests before code
-3. Target 80%+ test coverage
-4. Follow code style rules (enforced by pre-commit hooks)
-5. Use Conventional Commits
-6. Create pull requests for review before merging
-
-## License
-
-This project is proprietary and confidential.
-
-## Author
-
-Rahul Pandey (rpandey1901@gmail.com)
 
 ---
 
-**Last Updated:** April 2026
+## Common Commands
 
-For detailed setup instructions, see [docs/SETUP.md](docs/SETUP.md).
-For architecture and design details, see [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+```bash
+# Development
+uv run pytest                          # run unit tests
+uv run ruff check . --fix              # lint + autofix
+uv run ruff format .                   # format
+uv run pre-commit run --all-files      # run all hooks
+uv build                               # build wheel (artifacts.default)
+
+# DAB (replace <target> and <job_name>)
+databricks bundle validate --target <target>
+databricks bundle deploy --target <target>
+databricks bundle run <job_name> --target <target>
+databricks bundle summary --target <target>
+databricks bundle destroy --target <target>
+```
+
+---
+
+## Documentation Index
+
+| Doc | Purpose |
+|---|---|
+| [`CLAUDE.md`](./CLAUDE.md) | Workflow rules for AI assistants — ship-to-env, simple vs complex asks, naming |
+| [`docs/SETUP.md`](./docs/SETUP.md) | Detailed local setup |
+| [`docs/ARCHITECTURE.md`](./docs/ARCHITECTURE.md) | System architecture |
+| [`docs/DEPLOYMENT.md`](./docs/DEPLOYMENT.md) | Local + CI/CD deployment guide |
+| [`docs/GITFLOW.md`](./docs/GITFLOW.md) | Branching strategy + PR workflow |
+| [`docs/CI-CD-STANDARDS.md`](./docs/CI-CD-STANDARDS.md) | GitHub Actions conventions |
+| [`docs/DAB_FILE_SYNC.md`](./docs/DAB_FILE_SYNC.md) | How DAB syncs notebooks, wheels, and artifacts |
+| [`.github/SECRETS.md`](./.github/SECRETS.md) | OAuth service principal setup per environment |
