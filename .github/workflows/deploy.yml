@@ -28,8 +28,10 @@ jobs:
 
       - name: Install Databricks CLI
         run: |
-          curl -fsSL https://raw.githubusercontent.com/databricks/cli/main/install.sh | sh
-          echo "$HOME/.databricks/bin" >> $GITHUB_PATH
+          curl -fsSL https://github.com/databricks/cli/releases/download/v0.230.0/databricks-cli-v0.230.0-linux-amd64.zip -o /tmp/databricks-cli.zip
+          unzip /tmp/databricks-cli.zip -d /tmp
+          sudo mv /tmp/databricks /usr/local/bin/
+          databricks --version
 
       - name: Build wheel
         run: uv build
@@ -76,8 +78,10 @@ jobs:
 
       - name: Install Databricks CLI
         run: |
-          curl -fsSL https://raw.githubusercontent.com/databricks/cli/main/install.sh | sh
-          echo "$HOME/.databricks/bin" >> $GITHUB_PATH
+          curl -fsSL https://github.com/databricks/cli/releases/download/v0.230.0/databricks-cli-v0.230.0-linux-amd64.zip -o /tmp/databricks-cli.zip
+          unzip /tmp/databricks-cli.zip -d /tmp
+          sudo mv /tmp/databricks /usr/local/bin/
+          databricks --version
 
       - name: Build wheel
         run: uv build
@@ -124,8 +128,10 @@ jobs:
 
       - name: Install Databricks CLI
         run: |
-          curl -fsSL https://raw.githubusercontent.com/databricks/cli/main/install.sh | sh
-          echo "$HOME/.databricks/bin" >> $GITHUB_PATH
+          curl -fsSL https://github.com/databricks/cli/releases/download/v0.230.0/databricks-cli-v0.230.0-linux-amd64.zip -o /tmp/databricks-cli.zip
+          unzip /tmp/databricks-cli.zip -d /tmp
+          sudo mv /tmp/databricks /usr/local/bin/
+          databricks --version
 
       - name: Build wheel
         run: uv build
