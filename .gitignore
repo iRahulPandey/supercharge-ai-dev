@@ -11,6 +11,7 @@
 .cursor/
 .github/skills/
 .mcp.json
+docs/
 
 # Python
 __pycache__/
