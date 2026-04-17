@@ -27,7 +27,7 @@ jobs:
           echo "$HOME/.local/bin" >> $GITHUB_PATH
 
       - name: Install Databricks CLI
-        run: pip install databricks
+        run: pip install databricks==0.18.0
 
       - name: Build wheel
         run: uv build
@@ -73,7 +73,7 @@ jobs:
           echo "$HOME/.local/bin" >> $GITHUB_PATH
 
       - name: Install Databricks CLI
-        run: pip install databricks
+        run: pip install databricks==0.18.0
 
       - name: Build wheel
         run: uv build
@@ -119,7 +119,7 @@ jobs:
           echo "$HOME/.local/bin" >> $GITHUB_PATH
 
       - name: Install Databricks CLI
-        run: pip install databricks
+        run: pip install databricks==0.18.0
 
       - name: Build wheel
         run: uv build
