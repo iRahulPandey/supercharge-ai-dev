@@ -11,6 +11,10 @@ resources:
         - environment_key: default
           spec:
             environment_version: "4"
+            dependencies:
+              # Custom package — wheel built by artifacts.default via uv build.
+              # DAB uploads this to the workspace and rewrites the path at deploy time.
+              - ../dist/*.whl
       tasks:
         - task_key: hello_world
           notebook_task:

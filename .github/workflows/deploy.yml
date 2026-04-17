@@ -89,11 +89,14 @@ jobs:
           echo '```' >> $GITHUB_STEP_SUMMARY
 
       - name: Run smoke-test job (dev only)
+        # config_demo_job exercises the wheel + package imports + config loading,
+        # which is a superset smoke test of hello_world_job (notebook path resolution,
+        # serverless env, auth). If config_demo_job passes, deployment is healthy.
         env:
           DATABRICKS_HOST: ${{ secrets.DATABRICKS_DEV_HOST }}
           DATABRICKS_CLIENT_ID: ${{ secrets.DATABRICKS_DEV_CLIENT_ID }}
           DATABRICKS_CLIENT_SECRET: ${{ secrets.DATABRICKS_DEV_CLIENT_SECRET }}
-        run: databricks bundle run hello_world_job --target dev
+        run: databricks bundle run config_demo_job --target dev
 
   deploy-stg:
     if: github.ref == 'refs/heads/stg'

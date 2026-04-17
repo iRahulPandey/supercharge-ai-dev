@@ -11,6 +11,11 @@ resources:
         - environment_key: default
           spec:
             environment_version: "4"
+            dependencies:
+              # Custom package — wheel built by artifacts.default via uv build.
+              # DAB uploads this to the workspace and rewrites the path at deploy time.
+              # Installing the wheel pulls in its transitive deps (loguru, pydantic, pyyaml, etc.)
+              - ../dist/*.whl
       tasks:
         - task_key: config_demo
           notebook_task:
