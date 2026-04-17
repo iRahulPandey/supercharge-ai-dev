@@ -14,6 +14,6 @@ resources:
       tasks:
         - task_key: hello_world
           notebook_task:
-            notebook_path: ./notebooks/1_hello_world
+            notebook_path: ../notebooks/1_hello_world.py
           environment_key: default
       max_concurrent_runs: 1
