@@ -10,7 +10,7 @@ variables:
     default: "local"
   deployed_by:
     description: "User or service that deployed this bundle"
-    default: "${env.USER}"
+    default: "local-developer"
   deployment_source:
     description: "Source of deployment: local or cicd"
     default: "local"
