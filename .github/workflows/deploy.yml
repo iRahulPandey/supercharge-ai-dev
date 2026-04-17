@@ -44,6 +44,11 @@ jobs:
           EOF
 
       - name: Deploy to dev
+        env:
+          DATABRICKS_HOST: ${{ secrets.DATABRICKS_DEV_HOST }}
+          DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_DEV_TOKEN }}
+          DEPLOYED_BY: "github-actions[bot]"
+          DEPLOYMENT_SOURCE: "cicd"
         run: databricks bundle deploy --target dev
 
       - name: Run validation job
@@ -85,6 +90,11 @@ jobs:
           EOF
 
       - name: Deploy to stg
+        env:
+          DATABRICKS_HOST: ${{ secrets.DATABRICKS_STG_HOST }}
+          DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_STG_TOKEN }}
+          DEPLOYED_BY: "github-actions[bot]"
+          DEPLOYMENT_SOURCE: "cicd"
         run: databricks bundle deploy --target stg
 
       - name: Run validation job
@@ -126,6 +136,11 @@ jobs:
           EOF
 
       - name: Deploy to prod
+        env:
+          DATABRICKS_HOST: ${{ secrets.DATABRICKS_PROD_HOST }}
+          DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_PROD_TOKEN }}
+          DEPLOYED_BY: "github-actions[bot]"
+          DEPLOYMENT_SOURCE: "cicd"
         run: databricks bundle deploy --target prod
 
       - name: Run validation job
