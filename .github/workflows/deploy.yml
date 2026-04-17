@@ -27,7 +27,9 @@ jobs:
           echo "$HOME/.local/bin" >> $GITHUB_PATH
 
       - name: Install Databricks CLI
-        run: pip install databricks-cli
+        run: |
+          curl -fsSL https://raw.githubusercontent.com/databricks/cli/main/install.sh | sh
+          echo "$HOME/.databricks/bin" >> $GITHUB_PATH
 
       - name: Build wheel
         run: uv build
@@ -73,7 +75,9 @@ jobs:
           echo "$HOME/.local/bin" >> $GITHUB_PATH
 
       - name: Install Databricks CLI
-        run: pip install databricks-cli
+        run: |
+          curl -fsSL https://raw.githubusercontent.com/databricks/cli/main/install.sh | sh
+          echo "$HOME/.databricks/bin" >> $GITHUB_PATH
 
       - name: Build wheel
         run: uv build
@@ -119,7 +123,9 @@ jobs:
           echo "$HOME/.local/bin" >> $GITHUB_PATH
 
       - name: Install Databricks CLI
-        run: pip install databricks-cli
+        run: |
+          curl -fsSL https://raw.githubusercontent.com/databricks/cli/main/install.sh | sh
+          echo "$HOME/.databricks/bin" >> $GITHUB_PATH
 
       - name: Build wheel
         run: uv build
