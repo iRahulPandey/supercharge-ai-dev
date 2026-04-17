@@ -11,6 +11,7 @@
 .cursor/
 .github/skills/
 .mcp.json
+docs/
 
 # Python
 __pycache__/
@@ -36,4 +37,5 @@ build/
 # Test artifacts
 .pytest_cache/
 .coverage
+coverage.xml
 htmlcov/

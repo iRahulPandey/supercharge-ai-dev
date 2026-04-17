@@ -3,6 +3,10 @@ resources:
     config_demo_job:
       name: Config Demo Job
       description: Demonstrates configuration loading and usage
+      tags:
+        deployed_by: ${var.deployed_by}
+        source: ${var.deployment_source}
+        environment: ${bundle.target}
       tasks:
         - task_key: config_demo
           notebook_task:

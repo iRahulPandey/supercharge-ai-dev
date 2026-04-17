@@ -8,6 +8,12 @@ variables:
   git_sha:
     description: "Git SHA of the deployed commit"
     default: "local"
+  deployed_by:
+    description: "User or service that deployed this bundle"
+    default: "${env.USER}"
+  deployment_source:
+    description: "Source of deployment: local or cicd"
+    default: "local"
   schedule_pause_status:
     description: "Schedule pause status"
     default: PAUSED
