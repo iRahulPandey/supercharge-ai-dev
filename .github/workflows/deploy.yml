@@ -27,7 +27,7 @@ jobs:
           echo "$HOME/.local/bin" >> $GITHUB_PATH
 
       - name: Install Databricks CLI
-        run: pip install databricks==0.18.0
+        run: pip install --upgrade databricks-cli
 
       - name: Build wheel
         run: uv build
@@ -49,10 +49,10 @@ jobs:
           DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_DEV_TOKEN }}
           DEPLOYED_BY: "github-actions[bot]"
           DEPLOYMENT_SOURCE: "cicd"
-        run: python -m databricks.cli bundle deploy --target dev
+        run: databricks bundle deploy --target dev
 
       - name: Run validation job
-        run: python -m databricks.cli bundle run hello_world_job --target dev
+        run: databricks bundle run hello_world_job --target dev
 
   deploy-stg:
     if: github.ref == 'refs/heads/stg'
@@ -73,7 +73,7 @@ jobs:
           echo "$HOME/.local/bin" >> $GITHUB_PATH
 
       - name: Install Databricks CLI
-        run: pip install databricks==0.18.0
+        run: pip install --upgrade databricks-cli
 
       - name: Build wheel
         run: uv build
@@ -95,10 +95,10 @@ jobs:
           DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_STG_TOKEN }}
           DEPLOYED_BY: "github-actions[bot]"
           DEPLOYMENT_SOURCE: "cicd"
-        run: python -m databricks.cli bundle deploy --target stg
+        run: databricks bundle deploy --target stg
 
       - name: Run validation job
-        run: python -m databricks.cli bundle run hello_world_job --target stg
+        run: databricks bundle run hello_world_job --target stg
 
   deploy-prod:
     if: github.ref == 'refs/heads/master'
@@ -119,7 +119,7 @@ jobs:
           echo "$HOME/.local/bin" >> $GITHUB_PATH
 
       - name: Install Databricks CLI
-        run: pip install databricks==0.18.0
+        run: pip install --upgrade databricks-cli
 
       - name: Build wheel
         run: uv build
@@ -141,7 +141,7 @@ jobs:
           DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_PROD_TOKEN }}
           DEPLOYED_BY: "github-actions[bot]"
           DEPLOYMENT_SOURCE: "cicd"
-        run: python -m databricks.cli bundle deploy --target prod
+        run: databricks bundle deploy --target prod
 
       - name: Run validation job
-        run: python -m databricks.cli bundle run hello_world_job --target prod
+        run: databricks bundle run hello_world_job --target prod
