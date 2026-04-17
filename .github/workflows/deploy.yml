@@ -6,6 +6,18 @@ on:
       - dev
       - stg
       - master
+    paths:
+      - 'databricks.yml'
+      - 'resources/**'
+      - 'notebooks/**'
+      - 'src/**'
+      - 'pyproject.toml'
+      - '.github/workflows/deploy.yml'
+
+# Prevent concurrent deploys racing on the same branch
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: false
 
 jobs:
   deploy-dev:
@@ -62,7 +74,21 @@ jobs:
           DEPLOYMENT_SOURCE: "cicd"
         run: databricks bundle deploy --target dev
 
-      - name: Run validation job
+      - name: Deployment summary
+        env:
+          DATABRICKS_HOST: ${{ secrets.DATABRICKS_DEV_HOST }}
+          DATABRICKS_CLIENT_ID: ${{ secrets.DATABRICKS_DEV_CLIENT_ID }}
+          DATABRICKS_CLIENT_SECRET: ${{ secrets.DATABRICKS_DEV_CLIENT_SECRET }}
+        run: |
+          echo "## Deployment Summary — dev" >> $GITHUB_STEP_SUMMARY
+          echo "**Commit:** \`${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "**Deployed by:** CI/CD (${{ secrets.DATABRICKS_DEV_SERVICE_ACCOUNT }})" >> $GITHUB_STEP_SUMMARY
+          echo "**Target path:** \`/Workspace/supercharge-ai/dev/\`" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          databricks bundle summary --target dev >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+
+      - name: Run smoke-test job (dev only)
         env:
           DATABRICKS_HOST: ${{ secrets.DATABRICKS_DEV_HOST }}
           DATABRICKS_CLIENT_ID: ${{ secrets.DATABRICKS_DEV_CLIENT_ID }}
@@ -123,12 +149,20 @@ jobs:
           DEPLOYMENT_SOURCE: "cicd"
         run: databricks bundle deploy --target stg
 
-      - name: Run validation job
+      - name: Deployment summary
         env:
           DATABRICKS_HOST: ${{ secrets.DATABRICKS_STG_HOST }}
           DATABRICKS_CLIENT_ID: ${{ secrets.DATABRICKS_STG_CLIENT_ID }}
           DATABRICKS_CLIENT_SECRET: ${{ secrets.DATABRICKS_STG_CLIENT_SECRET }}
-        run: databricks bundle run hello_world_job --target stg
+        run: |
+          echo "## Deployment Summary — stg" >> $GITHUB_STEP_SUMMARY
+          echo "**Commit:** \`${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "**Deployed by:** CI/CD (${{ secrets.DATABRICKS_STG_SERVICE_ACCOUNT }})" >> $GITHUB_STEP_SUMMARY
+          echo "**Target path:** \`/Workspace/supercharge-ai/stg/\`" >> $GITHUB_STEP_SUMMARY
+          echo "**Note:** Jobs deployed but NOT triggered. Trigger manually in Databricks UI if needed." >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          databricks bundle summary --target stg >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
 
   deploy-prod:
     if: github.ref == 'refs/heads/master'
@@ -175,6 +209,17 @@ jobs:
           DATABRICKS_CLIENT_SECRET: ${{ secrets.DATABRICKS_PROD_CLIENT_SECRET }}
         run: databricks bundle validate --target prod
 
+      - name: Preview changes (dry-run)
+        env:
+          DATABRICKS_HOST: ${{ secrets.DATABRICKS_PROD_HOST }}
+          DATABRICKS_CLIENT_ID: ${{ secrets.DATABRICKS_PROD_CLIENT_ID }}
+          DATABRICKS_CLIENT_SECRET: ${{ secrets.DATABRICKS_PROD_CLIENT_SECRET }}
+        run: |
+          echo "## Prod Deployment Plan" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          databricks bundle deploy --target prod --dry-run 2>&1 | tee -a $GITHUB_STEP_SUMMARY || true
+          echo '```' >> $GITHUB_STEP_SUMMARY
+
       - name: Deploy to prod
         env:
           DATABRICKS_HOST: ${{ secrets.DATABRICKS_PROD_HOST }}
@@ -184,9 +229,17 @@ jobs:
           DEPLOYMENT_SOURCE: "cicd"
         run: databricks bundle deploy --target prod
 
-      - name: Run validation job
+      - name: Deployment summary
         env:
           DATABRICKS_HOST: ${{ secrets.DATABRICKS_PROD_HOST }}
           DATABRICKS_CLIENT_ID: ${{ secrets.DATABRICKS_PROD_CLIENT_ID }}
           DATABRICKS_CLIENT_SECRET: ${{ secrets.DATABRICKS_PROD_CLIENT_SECRET }}
-        run: databricks bundle run hello_world_job --target prod
+        run: |
+          echo "## Deployment Summary — prod" >> $GITHUB_STEP_SUMMARY
+          echo "**Commit:** \`${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "**Deployed by:** CI/CD (${{ secrets.DATABRICKS_PROD_SERVICE_ACCOUNT }})" >> $GITHUB_STEP_SUMMARY
+          echo "**Target path:** \`/Workspace/supercharge-ai/prod/\`" >> $GITHUB_STEP_SUMMARY
+          echo "**Note:** Jobs deployed but NOT triggered. Trigger manually in Databricks UI if needed." >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          databricks bundle summary --target prod >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
