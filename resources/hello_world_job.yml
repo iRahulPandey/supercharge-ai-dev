@@ -3,6 +3,10 @@ resources:
     hello_world_job:
       name: Hello World Job
       description: Demonstrates basic notebook execution via DAB
+      tags:
+        deployed_by: ${var.deployed_by}
+        source: ${var.deployment_source}
+        environment: ${bundle.target}
       tasks:
         - task_key: hello_world
           notebook_task:
