@@ -1,6 +1,10 @@
 bundle:
   name: supercharge-ai
 
+sync:
+  paths:
+    - ./notebooks
+
 include:
   - resources/*.yml
 

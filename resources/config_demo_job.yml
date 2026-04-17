@@ -14,6 +14,6 @@ resources:
       tasks:
         - task_key: config_demo
           notebook_task:
-            notebook_path: ${workspace.root_path}/notebooks/2_config_usage
+            notebook_path: ./notebooks/2_config_usage
           environment_key: default
       max_concurrent_runs: 1
