@@ -53,7 +53,7 @@ jobs:
         env:
           DATABRICKS_HOST: ${{ secrets.DATABRICKS_DEV_HOST }}
           DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_DEV_TOKEN }}
-          DEPLOYED_BY: "github-actions[bot]"
+          DEPLOYED_BY: ${{ secrets.DATABRICKS_DEV_SERVICE_ACCOUNT }}
           DEPLOYMENT_SOURCE: "cicd"
         run: databricks bundle deploy --target dev
 
@@ -105,7 +105,7 @@ jobs:
         env:
           DATABRICKS_HOST: ${{ secrets.DATABRICKS_STG_HOST }}
           DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_STG_TOKEN }}
-          DEPLOYED_BY: "github-actions[bot]"
+          DEPLOYED_BY: ${{ secrets.DATABRICKS_STG_SERVICE_ACCOUNT }}
           DEPLOYMENT_SOURCE: "cicd"
         run: databricks bundle deploy --target stg
 
@@ -157,7 +157,7 @@ jobs:
         env:
           DATABRICKS_HOST: ${{ secrets.DATABRICKS_PROD_HOST }}
           DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_PROD_TOKEN }}
-          DEPLOYED_BY: "github-actions[bot]"
+          DEPLOYED_BY: ${{ secrets.DATABRICKS_PROD_SERVICE_ACCOUNT }}
           DEPLOYMENT_SOURCE: "cicd"
         run: databricks bundle deploy --target prod
 
