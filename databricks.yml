@@ -1,10 +1,6 @@
 bundle:
   name: supercharge-ai
 
-sync:
-  paths:
-    - ./notebooks
-
 include:
   - resources/*.yml
 
@@ -13,14 +9,11 @@ variables:
     description: "Git SHA of the deployed commit"
     default: "local"
   deployed_by:
-    description: "User or service that deployed this bundle"
+    description: "User or service account that deployed this bundle"
     default: "local-developer"
   deployment_source:
     description: "Source of deployment: local or cicd"
     default: "local"
-  schedule_pause_status:
-    description: "Schedule pause status"
-    default: PAUSED
 
 artifacts:
   default:
@@ -29,24 +22,40 @@ artifacts:
     path: .
 
 targets:
-  dev:
+  # Local development on feature branches — user-scoped, ephemeral
+  # Deploys to /Users/${current-user}/.bundle/supercharge-ai/local/
+  # Auto-pauses schedules, prefixes jobs with [dev ${user}]
+  local:
     default: true
+    mode: development
+    workspace:
+      host: https://dbc-8943fe10-4fbf.cloud.databricks.com
+    variables:
+      deployment_source: local
+
+  # CI/CD deploys from dev branch → shared managed folder
+  dev:
+    mode: production
     workspace:
       host: https://dbc-8943fe10-4fbf.cloud.databricks.com
       root_path: /Workspace/supercharge-ai/dev
     variables:
-      schedule_pause_status: PAUSED
+      deployment_source: cicd
 
+  # CI/CD deploys from stg branch → shared managed folder
   stg:
+    mode: production
     workspace:
       host: https://dbc-8943fe10-4fbf.cloud.databricks.com
       root_path: /Workspace/supercharge-ai/stg
     variables:
-      schedule_pause_status: PAUSED
+      deployment_source: cicd
 
+  # CI/CD deploys from master branch → shared managed folder
   prod:
+    mode: production
     workspace:
       host: https://dbc-8943fe10-4fbf.cloud.databricks.com
       root_path: /Workspace/supercharge-ai/prod
     variables:
-      schedule_pause_status: UNPAUSED
+      deployment_source: cicd
