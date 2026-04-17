@@ -32,22 +32,33 @@ jobs:
       - name: Build wheel
         run: uv build
 
-      - name: Authenticate with Databricks
+      - name: Authenticate with Databricks via OAuth
         env:
           DATABRICKS_HOST: ${{ secrets.DATABRICKS_DEV_HOST }}
-          DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_DEV_TOKEN }}
+          DATABRICKS_CLIENT_ID: ${{ secrets.DATABRICKS_DEV_CLIENT_ID }}
+          DATABRICKS_CLIENT_SECRET: ${{ secrets.DATABRICKS_DEV_CLIENT_SECRET }}
         run: |
           mkdir -p ~/.databricks
           cat > ~/.databricks/DEFAULT << EOF
           host = ${{ secrets.DATABRICKS_DEV_HOST }}
-          token = ${{ secrets.DATABRICKS_DEV_TOKEN }}
+          client_id = ${{ secrets.DATABRICKS_DEV_CLIENT_ID }}
+          client_secret = ${{ secrets.DATABRICKS_DEV_CLIENT_SECRET }}
+          auth_type = oauth
           EOF
+
+      - name: Validate bundle configuration
+        env:
+          DATABRICKS_HOST: ${{ secrets.DATABRICKS_DEV_HOST }}
+          DATABRICKS_CLIENT_ID: ${{ secrets.DATABRICKS_DEV_CLIENT_ID }}
+          DATABRICKS_CLIENT_SECRET: ${{ secrets.DATABRICKS_DEV_CLIENT_SECRET }}
+        run: databricks bundle validate --target dev
 
       - name: Deploy to dev
         env:
           DATABRICKS_HOST: ${{ secrets.DATABRICKS_DEV_HOST }}
-          DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_DEV_TOKEN }}
-          DEPLOYED_BY: "github-actions[bot]"
+          DATABRICKS_CLIENT_ID: ${{ secrets.DATABRICKS_DEV_CLIENT_ID }}
+          DATABRICKS_CLIENT_SECRET: ${{ secrets.DATABRICKS_DEV_CLIENT_SECRET }}
+          DEPLOYED_BY: ${{ secrets.DATABRICKS_DEV_SERVICE_ACCOUNT }}
           DEPLOYMENT_SOURCE: "cicd"
         run: databricks bundle deploy --target dev
 
@@ -78,22 +89,33 @@ jobs:
       - name: Build wheel
         run: uv build
 
-      - name: Authenticate with Databricks
+      - name: Authenticate with Databricks via OAuth
         env:
           DATABRICKS_HOST: ${{ secrets.DATABRICKS_STG_HOST }}
-          DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_STG_TOKEN }}
+          DATABRICKS_CLIENT_ID: ${{ secrets.DATABRICKS_STG_CLIENT_ID }}
+          DATABRICKS_CLIENT_SECRET: ${{ secrets.DATABRICKS_STG_CLIENT_SECRET }}
         run: |
           mkdir -p ~/.databricks
           cat > ~/.databricks/DEFAULT << EOF
           host = ${{ secrets.DATABRICKS_STG_HOST }}
-          token = ${{ secrets.DATABRICKS_STG_TOKEN }}
+          client_id = ${{ secrets.DATABRICKS_STG_CLIENT_ID }}
+          client_secret = ${{ secrets.DATABRICKS_STG_CLIENT_SECRET }}
+          auth_type = oauth
           EOF
+
+      - name: Validate bundle configuration
+        env:
+          DATABRICKS_HOST: ${{ secrets.DATABRICKS_STG_HOST }}
+          DATABRICKS_CLIENT_ID: ${{ secrets.DATABRICKS_STG_CLIENT_ID }}
+          DATABRICKS_CLIENT_SECRET: ${{ secrets.DATABRICKS_STG_CLIENT_SECRET }}
+        run: databricks bundle validate --target stg
 
       - name: Deploy to stg
         env:
           DATABRICKS_HOST: ${{ secrets.DATABRICKS_STG_HOST }}
-          DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_STG_TOKEN }}
-          DEPLOYED_BY: "github-actions[bot]"
+          DATABRICKS_CLIENT_ID: ${{ secrets.DATABRICKS_STG_CLIENT_ID }}
+          DATABRICKS_CLIENT_SECRET: ${{ secrets.DATABRICKS_STG_CLIENT_SECRET }}
+          DEPLOYED_BY: ${{ secrets.DATABRICKS_STG_SERVICE_ACCOUNT }}
           DEPLOYMENT_SOURCE: "cicd"
         run: databricks bundle deploy --target stg
 
@@ -124,22 +146,33 @@ jobs:
       - name: Build wheel
         run: uv build
 
-      - name: Authenticate with Databricks
+      - name: Authenticate with Databricks via OAuth
         env:
           DATABRICKS_HOST: ${{ secrets.DATABRICKS_PROD_HOST }}
-          DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_PROD_TOKEN }}
+          DATABRICKS_CLIENT_ID: ${{ secrets.DATABRICKS_PROD_CLIENT_ID }}
+          DATABRICKS_CLIENT_SECRET: ${{ secrets.DATABRICKS_PROD_CLIENT_SECRET }}
         run: |
           mkdir -p ~/.databricks
           cat > ~/.databricks/DEFAULT << EOF
           host = ${{ secrets.DATABRICKS_PROD_HOST }}
-          token = ${{ secrets.DATABRICKS_PROD_TOKEN }}
+          client_id = ${{ secrets.DATABRICKS_PROD_CLIENT_ID }}
+          client_secret = ${{ secrets.DATABRICKS_PROD_CLIENT_SECRET }}
+          auth_type = oauth
           EOF
+
+      - name: Validate bundle configuration
+        env:
+          DATABRICKS_HOST: ${{ secrets.DATABRICKS_PROD_HOST }}
+          DATABRICKS_CLIENT_ID: ${{ secrets.DATABRICKS_PROD_CLIENT_ID }}
+          DATABRICKS_CLIENT_SECRET: ${{ secrets.DATABRICKS_PROD_CLIENT_SECRET }}
+        run: databricks bundle validate --target prod
 
       - name: Deploy to prod
         env:
           DATABRICKS_HOST: ${{ secrets.DATABRICKS_PROD_HOST }}
-          DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_PROD_TOKEN }}
-          DEPLOYED_BY: "github-actions[bot]"
+          DATABRICKS_CLIENT_ID: ${{ secrets.DATABRICKS_PROD_CLIENT_ID }}
+          DATABRICKS_CLIENT_SECRET: ${{ secrets.DATABRICKS_PROD_CLIENT_SECRET }}
+          DEPLOYED_BY: ${{ secrets.DATABRICKS_PROD_SERVICE_ACCOUNT }}
           DEPLOYMENT_SOURCE: "cicd"
         run: databricks bundle deploy --target prod
 
