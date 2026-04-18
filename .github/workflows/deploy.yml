@@ -3,10 +3,25 @@ name: Deploy via DAB
 on:
   push:
     branches:
-      - main
+      - dev
+      - stg
+      - master
+    paths:
+      - 'databricks.yml'
+      - 'resources/**'
+      - 'notebooks/**'
+      - 'src/**'
+      - 'pyproject.toml'
+      - '.github/workflows/deploy.yml'
+
+# Prevent concurrent deploys racing on the same branch
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: false
 
 jobs:
   deploy-dev:
+    if: github.ref == 'refs/heads/dev'
     runs-on: ubuntu-latest
     environment:
       name: dev
@@ -24,30 +39,57 @@ jobs:
           echo "$HOME/.local/bin" >> $GITHUB_PATH
 
       - name: Install Databricks CLI
-        run: pip install databricks-cli
+        run: curl -fsSL https://raw.githubusercontent.com/databricks/setup-cli/main/install.sh | sh
 
       - name: Build wheel
         run: uv build
 
-      - name: Authenticate with Databricks
+      - name: Authenticate with Databricks via OAuth
         env:
           DATABRICKS_HOST: ${{ secrets.DATABRICKS_DEV_HOST }}
-          DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_DEV_TOKEN }}
+          DATABRICKS_CLIENT_ID: ${{ secrets.DATABRICKS_DEV_CLIENT_ID }}
+          DATABRICKS_CLIENT_SECRET: ${{ secrets.DATABRICKS_DEV_CLIENT_SECRET }}
         run: |
           mkdir -p ~/.databricks
           cat > ~/.databricks/DEFAULT << EOF
           host = ${{ secrets.DATABRICKS_DEV_HOST }}
-          token = ${{ secrets.DATABRICKS_DEV_TOKEN }}
+          client_id = ${{ secrets.DATABRICKS_DEV_CLIENT_ID }}
+          client_secret = ${{ secrets.DATABRICKS_DEV_CLIENT_SECRET }}
+          auth_type = oauth
           EOF
 
+      - name: Validate bundle configuration
+        env:
+          DATABRICKS_HOST: ${{ secrets.DATABRICKS_DEV_HOST }}
+          DATABRICKS_CLIENT_ID: ${{ secrets.DATABRICKS_DEV_CLIENT_ID }}
+          DATABRICKS_CLIENT_SECRET: ${{ secrets.DATABRICKS_DEV_CLIENT_SECRET }}
+        run: databricks bundle validate --target dev
+
       - name: Deploy to dev
+        env:
+          DATABRICKS_HOST: ${{ secrets.DATABRICKS_DEV_HOST }}
+          DATABRICKS_CLIENT_ID: ${{ secrets.DATABRICKS_DEV_CLIENT_ID }}
+          DATABRICKS_CLIENT_SECRET: ${{ secrets.DATABRICKS_DEV_CLIENT_SECRET }}
+          DEPLOYED_BY: ${{ secrets.DATABRICKS_DEV_SERVICE_ACCOUNT }}
+          DEPLOYMENT_SOURCE: "cicd"
         run: databricks bundle deploy --target dev
 
-      - name: Run validation job
-        run: databricks bundle run hello_world_job --target dev
+      - name: Deployment summary
+        env:
+          DATABRICKS_HOST: ${{ secrets.DATABRICKS_DEV_HOST }}
+          DATABRICKS_CLIENT_ID: ${{ secrets.DATABRICKS_DEV_CLIENT_ID }}
+          DATABRICKS_CLIENT_SECRET: ${{ secrets.DATABRICKS_DEV_CLIENT_SECRET }}
+        run: |
+          echo "## Deployment Summary — dev" >> $GITHUB_STEP_SUMMARY
+          echo "**Commit:** \`${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "**Deployed by:** CI/CD (${{ secrets.DATABRICKS_DEV_SERVICE_ACCOUNT }})" >> $GITHUB_STEP_SUMMARY
+          echo "**Target path:** \`/Workspace/supercharge-ai/dev/\`" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          databricks bundle summary --target dev >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
 
   deploy-stg:
-    needs: deploy-dev
+    if: github.ref == 'refs/heads/stg'
     runs-on: ubuntu-latest
     environment:
       name: stg
@@ -65,27 +107,58 @@ jobs:
           echo "$HOME/.local/bin" >> $GITHUB_PATH
 
       - name: Install Databricks CLI
-        run: pip install databricks-cli
+        run: curl -fsSL https://raw.githubusercontent.com/databricks/setup-cli/main/install.sh | sh
 
       - name: Build wheel
         run: uv build
 
-      - name: Authenticate with Databricks
+      - name: Authenticate with Databricks via OAuth
         env:
           DATABRICKS_HOST: ${{ secrets.DATABRICKS_STG_HOST }}
-          DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_STG_TOKEN }}
+          DATABRICKS_CLIENT_ID: ${{ secrets.DATABRICKS_STG_CLIENT_ID }}
+          DATABRICKS_CLIENT_SECRET: ${{ secrets.DATABRICKS_STG_CLIENT_SECRET }}
         run: |
           mkdir -p ~/.databricks
           cat > ~/.databricks/DEFAULT << EOF
           host = ${{ secrets.DATABRICKS_STG_HOST }}
-          token = ${{ secrets.DATABRICKS_STG_TOKEN }}
+          client_id = ${{ secrets.DATABRICKS_STG_CLIENT_ID }}
+          client_secret = ${{ secrets.DATABRICKS_STG_CLIENT_SECRET }}
+          auth_type = oauth
           EOF
 
+      - name: Validate bundle configuration
+        env:
+          DATABRICKS_HOST: ${{ secrets.DATABRICKS_STG_HOST }}
+          DATABRICKS_CLIENT_ID: ${{ secrets.DATABRICKS_STG_CLIENT_ID }}
+          DATABRICKS_CLIENT_SECRET: ${{ secrets.DATABRICKS_STG_CLIENT_SECRET }}
+        run: databricks bundle validate --target stg
+
       - name: Deploy to stg
+        env:
+          DATABRICKS_HOST: ${{ secrets.DATABRICKS_STG_HOST }}
+          DATABRICKS_CLIENT_ID: ${{ secrets.DATABRICKS_STG_CLIENT_ID }}
+          DATABRICKS_CLIENT_SECRET: ${{ secrets.DATABRICKS_STG_CLIENT_SECRET }}
+          DEPLOYED_BY: ${{ secrets.DATABRICKS_STG_SERVICE_ACCOUNT }}
+          DEPLOYMENT_SOURCE: "cicd"
         run: databricks bundle deploy --target stg
 
+      - name: Deployment summary
+        env:
+          DATABRICKS_HOST: ${{ secrets.DATABRICKS_STG_HOST }}
+          DATABRICKS_CLIENT_ID: ${{ secrets.DATABRICKS_STG_CLIENT_ID }}
+          DATABRICKS_CLIENT_SECRET: ${{ secrets.DATABRICKS_STG_CLIENT_SECRET }}
+        run: |
+          echo "## Deployment Summary — stg" >> $GITHUB_STEP_SUMMARY
+          echo "**Commit:** \`${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "**Deployed by:** CI/CD (${{ secrets.DATABRICKS_STG_SERVICE_ACCOUNT }})" >> $GITHUB_STEP_SUMMARY
+          echo "**Target path:** \`/Workspace/supercharge-ai/stg/\`" >> $GITHUB_STEP_SUMMARY
+          echo "**Note:** Jobs deployed but NOT triggered. Trigger manually in Databricks UI if needed." >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          databricks bundle summary --target stg >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+
   deploy-prod:
-    needs: deploy-stg
+    if: github.ref == 'refs/heads/master'
     runs-on: ubuntu-latest
     environment:
       name: prod
@@ -103,21 +176,63 @@ jobs:
           echo "$HOME/.local/bin" >> $GITHUB_PATH
 
       - name: Install Databricks CLI
-        run: pip install databricks-cli
+        run: curl -fsSL https://raw.githubusercontent.com/databricks/setup-cli/main/install.sh | sh
 
       - name: Build wheel
         run: uv build
 
-      - name: Authenticate with Databricks
+      - name: Authenticate with Databricks via OAuth
         env:
           DATABRICKS_HOST: ${{ secrets.DATABRICKS_PROD_HOST }}
-          DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_PROD_TOKEN }}
+          DATABRICKS_CLIENT_ID: ${{ secrets.DATABRICKS_PROD_CLIENT_ID }}
+          DATABRICKS_CLIENT_SECRET: ${{ secrets.DATABRICKS_PROD_CLIENT_SECRET }}
         run: |
           mkdir -p ~/.databricks
           cat > ~/.databricks/DEFAULT << EOF
           host = ${{ secrets.DATABRICKS_PROD_HOST }}
-          token = ${{ secrets.DATABRICKS_PROD_TOKEN }}
+          client_id = ${{ secrets.DATABRICKS_PROD_CLIENT_ID }}
+          client_secret = ${{ secrets.DATABRICKS_PROD_CLIENT_SECRET }}
+          auth_type = oauth
           EOF
 
+      - name: Validate bundle configuration
+        env:
+          DATABRICKS_HOST: ${{ secrets.DATABRICKS_PROD_HOST }}
+          DATABRICKS_CLIENT_ID: ${{ secrets.DATABRICKS_PROD_CLIENT_ID }}
+          DATABRICKS_CLIENT_SECRET: ${{ secrets.DATABRICKS_PROD_CLIENT_SECRET }}
+        run: databricks bundle validate --target prod
+
+      - name: Preview changes (dry-run)
+        env:
+          DATABRICKS_HOST: ${{ secrets.DATABRICKS_PROD_HOST }}
+          DATABRICKS_CLIENT_ID: ${{ secrets.DATABRICKS_PROD_CLIENT_ID }}
+          DATABRICKS_CLIENT_SECRET: ${{ secrets.DATABRICKS_PROD_CLIENT_SECRET }}
+        run: |
+          echo "## Prod Deployment Plan" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          databricks bundle deploy --target prod --dry-run 2>&1 | tee -a $GITHUB_STEP_SUMMARY || true
+          echo '```' >> $GITHUB_STEP_SUMMARY
+
       - name: Deploy to prod
+        env:
+          DATABRICKS_HOST: ${{ secrets.DATABRICKS_PROD_HOST }}
+          DATABRICKS_CLIENT_ID: ${{ secrets.DATABRICKS_PROD_CLIENT_ID }}
+          DATABRICKS_CLIENT_SECRET: ${{ secrets.DATABRICKS_PROD_CLIENT_SECRET }}
+          DEPLOYED_BY: ${{ secrets.DATABRICKS_PROD_SERVICE_ACCOUNT }}
+          DEPLOYMENT_SOURCE: "cicd"
         run: databricks bundle deploy --target prod
+
+      - name: Deployment summary
+        env:
+          DATABRICKS_HOST: ${{ secrets.DATABRICKS_PROD_HOST }}
+          DATABRICKS_CLIENT_ID: ${{ secrets.DATABRICKS_PROD_CLIENT_ID }}
+          DATABRICKS_CLIENT_SECRET: ${{ secrets.DATABRICKS_PROD_CLIENT_SECRET }}
+        run: |
+          echo "## Deployment Summary — prod" >> $GITHUB_STEP_SUMMARY
+          echo "**Commit:** \`${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "**Deployed by:** CI/CD (${{ secrets.DATABRICKS_PROD_SERVICE_ACCOUNT }})" >> $GITHUB_STEP_SUMMARY
+          echo "**Target path:** \`/Workspace/supercharge-ai/prod/\`" >> $GITHUB_STEP_SUMMARY
+          echo "**Note:** Jobs deployed but NOT triggered. Trigger manually in Databricks UI if needed." >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          databricks bundle summary --target prod >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY

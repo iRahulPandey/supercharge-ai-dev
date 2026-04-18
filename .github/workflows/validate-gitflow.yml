@@ -1,0 +1,76 @@
+name: Validate GitFlow PR Target
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize]
+
+jobs:
+  validate-gitflow:
+    name: Enforce GitFlow Promotion Chain
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate PR target branch
+        env:
+          BASE_BRANCH: ${{ github.base_ref }}
+          HEAD_BRANCH: ${{ github.head_ref }}
+        run: |
+          echo "📋 Validating GitFlow..."
+          echo "   From: $HEAD_BRANCH"
+          echo "   To:   $BASE_BRANCH"
+          echo ""
+
+          VALID=true
+
+          # Feature branches can only target dev
+          if [[ $HEAD_BRANCH == feat/* || $HEAD_BRANCH == feature/* || $HEAD_BRANCH == fix/* ]]; then
+            if [ "$BASE_BRANCH" != "dev" ]; then
+              echo "❌ GITFLOW VIOLATION: Feature branches must target 'dev'"
+              echo "   Current target: $BASE_BRANCH"
+              echo "   Allowed target: dev"
+              echo ""
+              echo "   Correct flow: $HEAD_BRANCH → dev → stg → master"
+              VALID=false
+            fi
+          fi
+
+          # dev branch can only target stg
+          if [ "$HEAD_BRANCH" = "dev" ]; then
+            if [ "$BASE_BRANCH" != "stg" ]; then
+              echo "❌ GITFLOW VIOLATION: 'dev' branch must target 'stg'"
+              echo "   Current target: $BASE_BRANCH"
+              echo "   Allowed target: stg"
+              echo ""
+              echo "   Correct flow: dev → stg → master"
+              VALID=false
+            fi
+          fi
+
+          # stg branch can only target master
+          if [ "$HEAD_BRANCH" = "stg" ]; then
+            if [ "$BASE_BRANCH" != "master" ]; then
+              echo "❌ GITFLOW VIOLATION: 'stg' branch must target 'master'"
+              echo "   Current target: $BASE_BRANCH"
+              echo "   Allowed target: master"
+              echo ""
+              echo "   Correct flow: stg → master"
+              VALID=false
+            fi
+          fi
+
+          if [ "$VALID" = true ]; then
+            echo "✅ GitFlow validation passed"
+            echo "   $HEAD_BRANCH → $BASE_BRANCH (allowed)"
+            exit 0
+          else
+            echo ""
+            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+            echo "🔗 Allowed Flows:"
+            echo "   ✅ feat/* → dev"
+            echo "   ✅ feature/* → dev"
+            echo "   ✅ fix/* → dev"
+            echo "   ✅ dev → stg"
+            echo "   ✅ stg → master"
+            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+            echo "📖 See docs/GITFLOW.md for complete workflow documentation"
+            exit 1
+          fi
