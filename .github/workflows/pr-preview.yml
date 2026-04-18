@@ -1,0 +1,146 @@
+name: PR Preview — DAB Validation
+
+on:
+  pull_request:
+    branches:
+      - dev
+      - stg
+      - master
+    paths:
+      - 'databricks.yml'
+      - 'resources/**'
+      - 'notebooks/**'
+      - 'src/**'
+      - 'pyproject.toml'
+      - '.github/workflows/**'
+
+concurrency:
+  group: pr-preview-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+# Required to post validation results as PR comment
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    environment:
+      name: dev
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install uv
+        run: |
+          curl -LsSf https://astral.sh/uv/install.sh | sh
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
+
+      - name: Install Databricks CLI
+        run: curl -fsSL https://raw.githubusercontent.com/databricks/setup-cli/main/install.sh | sh
+
+      - name: Build wheel
+        run: uv build
+
+      - name: Determine target from PR base branch
+        id: target
+        env:
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          case "$BASE_REF" in
+            dev)    echo "target=dev"  >> "$GITHUB_OUTPUT" ;;
+            stg)    echo "target=stg"  >> "$GITHUB_OUTPUT" ;;
+            master) echo "target=prod" >> "$GITHUB_OUTPUT" ;;
+            *) echo "Unknown base ref: $BASE_REF" && exit 1 ;;
+          esac
+
+      - name: Authenticate with Databricks via OAuth
+        env:
+          DATABRICKS_HOST: ${{ secrets.DATABRICKS_DEV_HOST }}
+          DATABRICKS_CLIENT_ID: ${{ secrets.DATABRICKS_DEV_CLIENT_ID }}
+          DATABRICKS_CLIENT_SECRET: ${{ secrets.DATABRICKS_DEV_CLIENT_SECRET }}
+        run: |
+          mkdir -p ~/.databricks
+          cat > ~/.databricks/DEFAULT << EOF
+          host = ${{ secrets.DATABRICKS_DEV_HOST }}
+          client_id = ${{ secrets.DATABRICKS_DEV_CLIENT_ID }}
+          client_secret = ${{ secrets.DATABRICKS_DEV_CLIENT_SECRET }}
+          auth_type = oauth
+          EOF
+
+      - name: Validate bundle for target
+        id: validate
+        env:
+          DATABRICKS_HOST: ${{ secrets.DATABRICKS_DEV_HOST }}
+          DATABRICKS_CLIENT_ID: ${{ secrets.DATABRICKS_DEV_CLIENT_ID }}
+          DATABRICKS_CLIENT_SECRET: ${{ secrets.DATABRICKS_DEV_CLIENT_SECRET }}
+          TARGET: ${{ steps.target.outputs.target }}
+        run: |
+          databricks bundle validate --target "$TARGET" 2>&1 | tee validation.txt
+          {
+            echo "## DAB Validation — target \`$TARGET\`"
+            echo '```'
+            cat validation.txt
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Preview deploy plan (dry-run)
+        env:
+          DATABRICKS_HOST: ${{ secrets.DATABRICKS_DEV_HOST }}
+          DATABRICKS_CLIENT_ID: ${{ secrets.DATABRICKS_DEV_CLIENT_ID }}
+          DATABRICKS_CLIENT_SECRET: ${{ secrets.DATABRICKS_DEV_CLIENT_SECRET }}
+          TARGET: ${{ steps.target.outputs.target }}
+        run: |
+          {
+            echo "## Deploy Plan (dry-run) — target \`$TARGET\`"
+            echo '```'
+            databricks bundle deploy --target "$TARGET" --dry-run 2>&1 || true
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Comment on PR with validation result
+        if: always()
+        continue-on-error: true
+        uses: actions/github-script@v7
+        env:
+          TARGET: ${{ steps.target.outputs.target }}
+          OUTCOME: ${{ steps.validate.outcome }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        with:
+          script: |
+            const fs = require('fs');
+            const target = process.env.TARGET;
+            const outcome = process.env.OUTCOME;
+            const runUrl = process.env.RUN_URL;
+            const emoji = outcome === 'success' ? '✅' : '❌';
+            let validation = '';
+            try {
+              validation = fs.readFileSync('validation.txt', 'utf8');
+            } catch (e) {
+              validation = 'No validation output captured.';
+            }
+            const body = [
+              `${emoji} **DAB Validation for target \`${target}\`: ${outcome}**`,
+              '',
+              '<details><summary>Validation output</summary>',
+              '',
+              '```',
+              validation.slice(0, 60000),
+              '```',
+              '',
+              '</details>',
+              '',
+              `_See the [workflow run](${runUrl}) for the full deploy plan._`
+            ].join('\n');
+            await github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body
+            });

@@ -1,0 +1,37 @@
+resources:
+  jobs:
+    deploy_media_customer_insights_genie_space_job:
+      name: Deploy Media Customer Insights Genie Space
+      description: >
+        Idempotently creates or updates a Genie Space backed by the
+        media_customer_review_insights table, per-env (suffixed with the DAB
+        target name). Reads genie_spaces.media_customer_insights from
+        project_config.yml. Depends on extract_media_customer_review_insights_job
+        having been run previously so the source table exists.
+      tags:
+        deployed_by: ${var.deployed_by}
+        source: ${var.deployment_source}
+        environment: ${bundle.target}
+      environments:
+        - environment_key: default
+          spec:
+            environment_version: "4"
+            dependencies:
+              # Installs the project wheel (supercharge_ai package + transitive
+              # deps: loguru, pydantic, pyyaml, databricks-sdk). DAB uploads
+              # the wheel and rewrites this relative path at deploy time.
+              - ../dist/*.whl
+      tasks:
+        - task_key: deploy_genie_space
+          notebook_task:
+            notebook_path: ../notebooks/03_deploy_media_customer_insights_genie_space.py
+            base_parameters:
+              env: ${bundle.target}
+              space: media_customer_insights
+              config_path: ${workspace.file_path}/project_config.yml
+              # Per-env workspace folder. For local target, resolves to
+              # /Users/{user}/.bundle/supercharge-ai/local/. For dev/stg/prod,
+              # resolves to /Workspace/supercharge-ai/{env}/.
+              parent_path: ${workspace.root_path}
+          environment_key: default
+      max_concurrent_runs: 1

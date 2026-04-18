@@ -1,0 +1,32 @@
+resources:
+  jobs:
+    extract_media_customer_review_insights_job:
+      name: Extract Media Customer Review Insights
+      description: >
+        Enriches {target_catalog}.bakehouse.media_customer_reviews with sentiment,
+        NPS category, and topic extraction via Databricks task-specific AI functions,
+        writing to {target_catalog}.bakehouse.media_customer_review_insights.
+        Depends on ingest_media_customer_reviews_job having been run previously.
+      tags:
+        deployed_by: ${var.deployed_by}
+        source: ${var.deployment_source}
+        environment: ${bundle.target}
+      environments:
+        - environment_key: default
+          spec:
+            environment_version: "4"
+            dependencies:
+              # Installs the project wheel (supercharge_ai package + transitive deps:
+              # loguru, pydantic, pyyaml, etc.). DAB uploads the wheel and rewrites
+              # this relative path to the workspace location at deploy time.
+              - ../dist/*.whl
+      tasks:
+        - task_key: extract_insights
+          notebook_task:
+            notebook_path: ../notebooks/02_extract_media_customer_review_insights.py
+            base_parameters:
+              env: ${bundle.target}
+              dataset: media_customer_review_insights
+              config_path: ${workspace.file_path}/project_config.yml
+          environment_key: default
+      max_concurrent_runs: 1
