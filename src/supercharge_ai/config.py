@@ -94,6 +94,55 @@ class DatasetConfig(BaseModel):
     model_config = ConfigDict(populate_by_name=True)  # type: ignore[assignment]
 
 
+class GenieTableConfig(BaseModel):
+    """A table reference inside a Genie space, with optional UI description.
+
+    Reuses the same {catalog, schema, table} shape as TableRef; `catalog`
+    falls back to the env's catalog if omitted.
+    """
+
+    catalog: str | None = Field(default=None, description="Unity Catalog name")
+    schema_name: str = Field(..., alias="schema", description="Schema name")
+    table: str = Field(..., description="Table name")
+    description: str | None = Field(
+        default=None, description="Free-text description surfaced to Genie"
+    )
+
+    model_config = ConfigDict(populate_by_name=True)  # type: ignore[assignment]
+
+    def identifier(self, default_catalog: str | None = None) -> str:
+        """Fully qualified `catalog.schema.table` for the Genie data source."""
+        catalog = self.catalog or default_catalog
+        if not catalog:
+            raise ValueError(
+                f"No catalog available for table {self.schema_name}.{self.table}"
+            )
+        return f"{catalog}.{self.schema_name}.{self.table}"
+
+
+class GenieSpaceConfig(BaseModel):
+    """Declarative config for a Genie Space.
+
+    Deployed idempotently by title match: if a space with `title` exists under
+    the target parent path, it's updated in place; otherwise a new one is
+    created. Per-env title suffixing (e.g. " (dev)") is applied at deploy time.
+    """
+
+    title: str = Field(..., description="Genie space display title")
+    description: str = Field(default="", description="Space description")
+    instructions: list[str] = Field(
+        default_factory=list,
+        description="Free-text guidance strings; UUIDs are generated at deploy time",
+    )
+    sample_questions: list[str] = Field(
+        default_factory=list,
+        description="Example questions surfaced in the Genie UI",
+    )
+    tables: list[GenieTableConfig] = Field(
+        default_factory=list, description="Tables attached to the Genie space"
+    )
+
+
 def load_config(
     config_path: str = "project_config.yml", env: str = "dev"
 ) -> ProjectConfig:
@@ -136,6 +185,36 @@ def load_dataset(dataset: str, config_path: str = "project_config.yml") -> Datas
         )
 
     return DatasetConfig(**datasets[dataset])
+
+
+def load_genie_space(
+    space: str, config_path: str = "project_config.yml"
+) -> GenieSpaceConfig:
+    """Load Genie Space config from the `genie_spaces` section.
+
+    Args:
+        space: Key under the top-level `genie_spaces:` block
+        config_path: Path to configuration file
+
+    Returns:
+        GenieSpaceConfig instance
+
+    Raises:
+        ValueError: If the space key is missing or `genie_spaces` is absent
+    """
+    resolved = _resolve_config_path(config_path)
+    with open(resolved, encoding="utf-8") as f:
+        raw: dict[str, Any] = yaml.safe_load(f)
+
+    spaces = raw.get("genie_spaces") or {}
+    if space not in spaces:
+        available = sorted(spaces.keys())
+        raise ValueError(
+            f"Genie space '{space}' not found in {resolved}. "
+            f"Available spaces: {available}"
+        )
+
+    return GenieSpaceConfig(**spaces[space])
 
 
 def _resolve_config_path(config_path: str) -> str:

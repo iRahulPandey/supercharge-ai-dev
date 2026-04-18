@@ -49,10 +49,12 @@ logger.info(f"env={env} dataset={dataset_key} config_path={config_path}")
 project = load_config(config_path=config_path, env=env)
 dataset = load_dataset(dataset=dataset_key, config_path=config_path)
 
-input_fqn = dataset.input.fqn()  # fully qualified — all 3 parts required
-output_fqn = dataset.output.fqn(
-    default_catalog=project.catalog
-)  # catalog falls back to env
+# Both sides accept catalog fallback to env.catalog when omitted in config.
+# For this dataset input.catalog=samples is set explicitly; for datasets whose
+# input lives in the env's catalog (e.g. downstream enrichment jobs), omitting
+# input.catalog works too.
+input_fqn = dataset.input.fqn(default_catalog=project.catalog)
+output_fqn = dataset.output.fqn(default_catalog=project.catalog)
 
 logger.info(f"Input:  {input_fqn}")
 logger.info(f"Output: {output_fqn}")
