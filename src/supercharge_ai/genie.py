@@ -11,7 +11,7 @@ title equals the target title, update it if found, otherwise create new.
 from __future__ import annotations
 
 import json
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 from uuid import uuid4
 
 if TYPE_CHECKING:
@@ -122,7 +122,10 @@ def resolve_warehouse_id(wc: WorkspaceClient, configured_id: str | None) -> str:
         return (state_order.get(state, 99), size_order.get(size, 99))
 
     warehouses.sort(key=sort_key)
-    return warehouses[0].id
+    chosen_id = warehouses[0].id
+    if not chosen_id:
+        raise RuntimeError("Selected warehouse has no id")
+    return chosen_id
 
 
 def find_space_by_title(wc: WorkspaceClient, title: str) -> str | None:
@@ -130,8 +133,9 @@ def find_space_by_title(wc: WorkspaceClient, title: str) -> str | None:
 
     Uses `GET /api/2.0/genie/spaces`. Title comparison is exact.
     """
-    resp = wc.api_client.do("GET", "/api/2.0/genie/spaces")
-    spaces = (resp or {}).get("spaces") or []
+    # api_client.do returns dict | list | BinaryIO; Genie GET returns a dict.
+    resp = cast(dict[str, Any], wc.api_client.do("GET", "/api/2.0/genie/spaces") or {})
+    spaces: list[dict[str, Any]] = resp.get("spaces") or []
     for s in spaces:
         if s.get("title") == title:
             return s.get("space_id")
@@ -180,10 +184,14 @@ def upsert_space(
         )
         return {"action": "updated", "space_id": existing_id, "title": title}
 
-    resp = wc.api_client.do("POST", "/api/2.0/genie/spaces", body=body)
+    # api_client.do returns dict | list | BinaryIO; the create response is a dict.
+    resp = cast(
+        dict[str, Any],
+        wc.api_client.do("POST", "/api/2.0/genie/spaces", body=body) or {},
+    )
     return {
         "action": "created",
-        "space_id": (resp or {}).get("space_id"),
+        "space_id": resp.get("space_id"),
         "title": title,
     }
 
