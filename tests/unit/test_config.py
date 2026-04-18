@@ -10,9 +10,11 @@ from pydantic import ValidationError
 
 from supercharge_ai.config import (
     DatasetConfig,
+    GenieSpaceConfig,
     ProjectConfig,
     TableRef,
     load_dataset,
+    load_genie_space,
 )
 
 # --- ProjectConfig ---------------------------------------------------------
@@ -130,6 +132,56 @@ datasets:
         assert ds.output.catalog is None
         assert ds.output.fqn("dev") == "dev.bakehouse.media_customer_reviews"
         assert ds.output.fqn("prd") == "prd.bakehouse.media_customer_reviews"
+
+
+def test_load_genie_space_from_yaml():
+    """load_genie_space reads the genie_spaces section and builds GenieSpaceConfig."""
+    yaml_content = """
+genie_spaces:
+  media_customer_insights:
+    title: "Media Customer Review Insights"
+    description: "Explore reviews"
+    instructions:
+      - "sentiment: one of positive/negative/neutral/mixed"
+    sample_questions:
+      - "What is the overall sentiment?"
+    tables:
+      - schema: bakehouse
+        table: media_customer_review_insights
+        description: "Enriched reviews"
+"""
+    with tempfile.TemporaryDirectory() as tmpdir:
+        config_path = Path(tmpdir) / "config.yml"
+        config_path.write_text(yaml_content)
+
+        space = load_genie_space("media_customer_insights", str(config_path))
+        assert isinstance(space, GenieSpaceConfig)
+        assert space.title == "Media Customer Review Insights"
+        assert space.instructions == ["sentiment: one of positive/negative/neutral/mixed"]
+        assert space.sample_questions == ["What is the overall sentiment?"]
+        assert len(space.tables) == 1
+        assert space.tables[0].schema_name == "bakehouse"
+        assert space.tables[0].table == "media_customer_review_insights"
+        assert space.tables[0].catalog is None
+        assert (
+            space.tables[0].identifier(default_catalog="dev")
+            == "dev.bakehouse.media_customer_review_insights"
+        )
+
+
+def test_load_genie_space_missing_key_raises():
+    """load_genie_space raises a clear error when the key is absent."""
+    yaml_content = """
+genie_spaces:
+  some_other_space:
+    title: "Other"
+"""
+    with tempfile.TemporaryDirectory() as tmpdir:
+        config_path = Path(tmpdir) / "config.yml"
+        config_path.write_text(yaml_content)
+
+        with pytest.raises(ValueError, match="Genie space 'missing' not found"):
+            load_genie_space("missing", str(config_path))
 
 
 def test_load_dataset_missing_key_raises():

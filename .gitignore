@@ -11,7 +11,10 @@
 .cursor/
 .github/skills/
 .mcp.json
-docs/
+
+# IDE — keep .vscode/settings.json (team-useful Databricks notebook markers);
+# ignore mcp.json which contains user-specific absolute paths.
+.vscode/mcp.json
 
 # Python
 __pycache__/
@@ -34,8 +37,10 @@ dist/
 build/
 *.egg-info/
 
-# Test artifacts
+# Test / type-check / lint caches
 .pytest_cache/
+.mypy_cache/
+.ruff_cache/
 .coverage
 coverage.xml
 htmlcov/

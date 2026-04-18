@@ -154,3 +154,17 @@ Common pitfalls already encountered on this project:
 - Notebook paths in resource YAMLs are resolved **relative to the YAML file location** (`resources/`), not the bundle root. Use `../notebooks/X.py` with the `.py` extension.
 - Serverless env v4 has a narrow base library set. Install the project wheel via `dependencies: [../dist/*.whl]` in the environment spec — that's how runtime deps reach the notebook.
 - `mode: production` requires an explicit non-user `root_path`. `mode: development` auto-scopes paths to `/Users/{you}/.bundle/...` and pauses schedules.
+- **Genie `serialized_space` schema (v1):** `config`, `data_sources`, `instructions` are **top-level siblings** — not nested inside `config`. Nesting → `Cannot find field: data_sources`.
+- **Genie `text_instructions` is `max_items=1`.** Wrap ALL instruction strings inside a single entry's `content` array: `[{"id": ..., "content": ["rule 1", "rule 2", ...]}]`. Multiple entries → `must contain at most one item`.
+- **Genie API isn't in the Databricks SDK surface.** Use `WorkspaceClient.api_client.do("POST", "/api/2.0/genie/spaces", body=...)`. For idempotency, list spaces via `GET`, match by title, and `POST /api/2.0/genie/spaces/{id}/updatespace` to update in place.
+- **AI functions need a SQL-capable runtime.** Serverless env v4 works for `ai_analyze_sentiment`, `ai_classify`, `ai_extract`, etc. Always prefer task-specific functions over `ai_query` (see `.claude/skills/databricks-ai-functions/`).
+
+## Established Feature Patterns
+
+Three canonical patterns exist on this project. Reuse them before inventing new ones:
+
+1. **Ingestion** (`01_ingest_*.py` + `ingest_*_job.yml`) — CTAS from a source table into `{env_catalog}.<schema>.<table>`, fully config-driven via `datasets:` entries with symmetric `input`/`output` shape.
+2. **AI enrichment** (`02_extract_*.py` + `extract_*_job.yml`) — reads a prior dataset, applies Databricks task-specific AI functions (`ai_analyze_sentiment`, `ai_classify`, `ai_extract`), writes the enriched table. Same config shape (`datasets:` with `input`/`output`) — just with AI function calls in between.
+3. **Genie Space deployment** (`03_deploy_*_genie_space.py` + `deploy_*_genie_space_job.yml`) — idempotent create-or-update via title match, backed by a `genie_spaces:` config entry. Per-env title suffix `(<env>)` so dev/stg/prod spaces coexist.
+
+If the next ask fits one of these, copy the existing notebook/job and swap the `datasets:` / `genie_spaces:` key. If it doesn't, treat as a **complex** request per the task workflow above.
